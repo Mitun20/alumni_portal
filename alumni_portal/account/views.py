@@ -115,62 +115,21 @@ class Assign_Group(APIView):
 
 
 # get data for dropdown
-class RetrieveDepartments(APIView):
-    def get(self, request):
-        departments = Department.objects.all()
-        data = [
-            {
-                "departmentId": department.id,
-                "departmentName": department.department_name,
-                "description": department.description,
-                "is_active": department.is_active,
-            }
-            for department in departments
-        ]
-        return Response(data, status=status.HTTP_200_OK)
-    
-class RetrieveBatch(APIView):
-    def get(self, request):
-        departments = Department.objects.all()
-        data = [
-            {
-                "departmentId": department.id,
-                "departmentName": department.department_name,
-                "description": department.description,
-                "is_active": department.is_active,
-            }
-            for department in departments
-        ]
-        return Response(data, status=status.HTTP_200_OK)
 
-class RetrieveCourse(APIView):
-    def get(self, request):
-        departments = Department.objects.all()
-        data = [
-            {
-                "departmentId": department.id,
-                "departmentName": department.department_name,
-                "description": department.description,
-                "is_active": department.is_active,
-            }
-            for department in departments
-        ]
-        return Response(data, status=status.HTTP_200_OK)
 # Manage Salutation
-# class CreateSalutation(APIView):
+class CreateSalutation(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        salutation = Salutation(
+            salutation= request.data['salutation'],
+            description= request.data['description'],
+        )
+        salutation.save()
 
-#     def post(self, request):
-#         salutation = Salutation(
-#             "salutation_id": request.data.get('user_id')salutation.id,
-#             "salutation_name": salutation.salutation,
-#             "description": salutation.description,
-#         )
-#         salutation.save()
-
-#         return Response({"message": "Salutation created successfully"}, status=status.HTTP_201_CREATED)
-
+        return Response({"message": "Salutation created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveSalutation(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         salutations = Salutation.objects.all()
         data = [
@@ -182,6 +141,209 @@ class RetrieveSalutation(APIView):
             for salutation in salutations
         ]
         return Response(data, status=status.HTTP_200_OK)
+
+class UpdateSalutation(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, salutation_id):
+        try:
+            salutation = Salutation.objects.get(id=salutation_id)
+            data = {
+                "salutation": salutation.salutation,
+                "description": salutation.description,
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Salutation.DoesNotExist:
+            return Response({"message": "Salutation not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    def post(self, request, salutation_id):
+        try:
+            salutation = Salutation.objects.filter(id=salutation_id)
+        except Salutation.DoesNotExist:
+            return Response({"message": "Salutation not found"}, status=status.HTTP_404_NOT_FOUND)
+        salutation.update(
+        salutation = request.data["salutation"],
+        description = request.data["description"],
+        )
+
+        return Response({"message": "Salutation updated successfully"}, status=status.HTTP_200_OK)
+
+# Manage Batch
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Batch, Department, Course
+
+# Create, Retrieve, and Update for Batch
+class CreateBatch(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        batch = Batch(
+            title=request.data['title'],
+            start_year=request.data['start_year'],
+            end_year=request.data['end_year']
+        )
+        batch.save()
+        return Response({"message": "Batch created successfully"}, status=status.HTTP_201_CREATED)
+
+class RetrieveBatch(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        batches = Batch.objects.all()
+        data = [
+            {
+                "batch_id": batch.id,
+                "title": batch.title,
+                "start_year": batch.start_year,
+                "end_year": batch.end_year
+            }
+            for batch in batches
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
+class UpdateBatch(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, batch_id):
+        try:
+            batch = Batch.objects.get(id=batch_id)
+            data = {
+                "title": batch.title,
+                "start_year": batch.start_year,
+                "end_year": batch.end_year
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Batch.DoesNotExist:
+            return Response({"message": "Batch not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, batch_id):
+        try:
+            batch = Batch.objects.get(id=batch_id)
+        except Batch.DoesNotExist:
+            return Response({"message": "Batch not found"}, status=status.HTTP_404_NOT_FOUND)
+        batch.title = request.data["title"]
+        batch.start_year = request.data["start_year"]
+        batch.end_year = request.data["end_year"]
+        batch.save()
+
+        return Response({"message": "Batch updated successfully"}, status=status.HTTP_200_OK)
+
+# Create, Retrieve, and Update for Department
+class CreateDepartment(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        department = Department(
+            short_name=request.data['short_name'],
+            full_name=request.data['full_name'],
+            is_active=request.data.get('is_active', True)
+        )
+        department.save()
+        return Response({"message": "Department created successfully"}, status=status.HTTP_201_CREATED)
+
+class RetrieveDepartment(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        departments = Department.objects.all()
+        data = [
+            {
+                "department_id": department.id,
+                "short_name": department.short_name,
+                "full_name": department.full_name,
+                "is_active": department.is_active
+            }
+            for department in departments
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
+class UpdateDepartment(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, department_id):
+        try:
+            department = Department.objects.get(id=department_id)
+            data = {
+                "short_name": department.short_name,
+                "full_name": department.full_name,
+                "is_active": department.is_active
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Department.DoesNotExist:
+            return Response({"message": "Department not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, department_id):
+        try:
+            department = Department.objects.get(id=department_id)
+        except Department.DoesNotExist:
+            return Response({"message": "Department not found"}, status=status.HTTP_404_NOT_FOUND)
+        department.short_name = request.data["short_name"]
+        department.full_name = request.data["full_name"]
+        department.is_active = request.data.get("is_active", department.is_active)
+        department.save()
+
+        return Response({"message": "Department updated successfully"}, status=status.HTTP_200_OK)
+
+# Create, Retrieve, and Update for Course
+class CreateCourse(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        course = Course(
+            title=request.data['title'],
+            graduate=request.data['graduate'],
+            department_id=request.data['department_id'],  # assuming department_id is passed
+            is_active=request.data.get('is_active', True)
+        )
+        course.save()
+        return Response({"message": "Course created successfully"}, status=status.HTTP_201_CREATED)
+
+class RetrieveCourse(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        courses = Course.objects.all()
+        data = [
+            {
+                "course_id": course.id,
+                "title": course.title,
+                "graduate": course.graduate,
+                "department": course.department.full_name,
+                "is_active": course.is_active
+            }
+            for course in courses
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
+class UpdateCourse(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, course_id):
+        try:
+            course = Course.objects.get(id=course_id)
+            data = {
+                "title": course.title,
+                "graduate": course.graduate,
+                "department_id": course.department.id,
+                "is_active": course.is_active
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Course.DoesNotExist:
+            return Response({"message": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, course_id):
+        try:
+            course = Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            return Response({"message": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        course.title = request.data["title"]
+        course.graduate = request.data["graduate"]
+        course.department_id = request.data["department_id"]
+        course.is_active = request.data.get("is_active", course.is_active)
+        course.save()
+
+        return Response({"message": "Course updated successfully"}, status=status.HTTP_200_OK)
 
 
 # register

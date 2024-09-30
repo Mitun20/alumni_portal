@@ -157,17 +157,17 @@ class RetrieveCourse(APIView):
         ]
         return Response(data, status=status.HTTP_200_OK)
 # Manage Salutation
-class CreateSalutation(APIView):
+# class CreateSalutation(APIView):
 
-    def post(self, request):
-        department = Department(
-            department_name=request.data['department_name'],
-            description=request.data['description'],
-            is_active= True
-        )
-        department.save()
+#     def post(self, request):
+#         salutation = Salutation(
+#             "salutation_id": request.data.get('user_id')salutation.id,
+#             "salutation_name": salutation.salutation,
+#             "description": salutation.description,
+#         )
+#         salutation.save()
 
-        return Response({"message": "Department created successfully"}, status=status.HTTP_201_CREATED)
+#         return Response({"message": "Salutation created successfully"}, status=status.HTTP_201_CREATED)
 
 
 class RetrieveSalutation(APIView):

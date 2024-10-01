@@ -14,7 +14,6 @@ from .serializers import UserSerializer, GroupSerializer
 import pandas as pd
 from django.contrib.auth.models import User
 from .models import *
-from io import BytesIO
 import random
 import string
 from django.core.mail import send_mail
@@ -114,7 +113,40 @@ class Assign_Group(APIView):
             return Response({'error': 'Group not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 
-# get data for dropdown
+# active data for dropdown
+class ActiveDepartment(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        departments = Department.objects.filter(is_active=True)
+        data = [
+            {
+                "department_id": department.id,
+                "short_name": department.short_name,
+                "full_name": department.full_name,
+                "is_active": department.is_active
+            }
+            for department in departments
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
+class ActiveCourse(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        courses = Course.objects.filter(is_active=True)
+        data = [
+            {
+                "course_id": course.id,
+                "title": course.title,
+                "graduate": course.graduate,
+                "department": course.department.full_name,
+                "is_active": course.is_active
+            }
+            for course in courses
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
 
 # Manage Salutation
 class CreateSalutation(APIView):
@@ -129,7 +161,7 @@ class CreateSalutation(APIView):
         return Response({"message": "Salutation created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveSalutation(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     def get(self, request):
         salutations = Salutation.objects.all()
         data = [
@@ -167,11 +199,6 @@ class UpdateSalutation(APIView):
 
         return Response({"message": "Salutation updated successfully"}, status=status.HTTP_200_OK)
 
-# Manage Batch
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from .models import Batch, Department, Course
 
 # Create, Retrieve, and Update for Batch
 class CreateBatch(APIView):
@@ -187,7 +214,7 @@ class CreateBatch(APIView):
         return Response({"message": "Batch created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveBatch(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         batches = Batch.objects.all()
@@ -229,7 +256,7 @@ class UpdateBatch(APIView):
 
         return Response({"message": "Batch updated successfully"}, status=status.HTTP_200_OK)
 
-# Create, Retrieve, and Update for Department
+# Create, Retrieve, Deactivate and Update for Department
 class CreateDepartment(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -285,7 +312,24 @@ class UpdateDepartment(APIView):
 
         return Response({"message": "Department updated successfully"}, status=status.HTTP_200_OK)
 
-# Create, Retrieve, and Update for Course
+class InactiveDepartment(APIView):
+    permission_classes = [IsAuthenticated]
+    def put(self, request, department_id):
+        
+        if department_id is None:
+            return Response({"message": "Department ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            department = Department.objects.get(id=department_id)
+            department.is_active = request.data.get('is_active')
+
+            department.save()
+            return Response({"message": "Department status has been updated successfully"}, status=status.HTTP_200_OK)
+        except Department.DoesNotExist:
+            return Response({"message": "Department not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+
+# Create, Retrieve,Deactivate and Update for Course
 class CreateCourse(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -345,6 +389,23 @@ class UpdateCourse(APIView):
 
         return Response({"message": "Course updated successfully"}, status=status.HTTP_200_OK)
 
+class InactiveCourse(APIView):
+    # permission_classes = [IsAuthenticated]
+    def put(self, request, course_id):
+        
+        if course_id is None:
+            return Response({"message": "Course ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            course = Course.objects.get(id=course_id)
+            course.is_active = request.data.get('is_active')
+
+            course.save()
+            return Response({"message": "Course status has been updated successfully"}, status=status.HTTP_200_OK)
+        except Course.DoesNotExist:
+            return Response({"message": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        
 
 # register
 

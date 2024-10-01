@@ -36,9 +36,15 @@ urlpatterns = [
     path('create_department/', CreateDepartment.as_view(), name='create_department'),
     path('retrieve_department/', RetrieveDepartment.as_view(), name='retrieve_department'),
     path('update_department/<int:department_id>/', UpdateDepartment.as_view(), name='update_department'),
+    path('decativate_department/<int:department_id>/', InactiveDepartment.as_view(), name='decativate_department'),
 
     # Course
-    path('retrieve_course/', CreateCourse.as_view(), name='retrieve_course'),
+    path('create_course/', CreateCourse.as_view(), name='create_course'),
     path('retrieve_course/', RetrieveCourse.as_view(), name='retrieve_course'),
     path('update_course/<int:course_id>/', UpdateCourse.as_view(), name='update_course'),
+    path('decativate_course/<int:course_id>/', InactiveCourse.as_view(), name='decativate_course'),
+    
+    # Active department and course
+    path('active_department/', ActiveDepartment.as_view(), name='active_department'),
+    path('active_course/', ActiveCourse.as_view(), name='active_course'),
 ]

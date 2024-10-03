@@ -17,7 +17,7 @@ urlpatterns = [
     # alumni registration process
     path('register_user/', RegisterUsers.as_view(), name='register_user'),
     path('creating_user/',CreatingUser.as_view(),name='creating_user'),
-    path('member_data/',ShowMemberData.as_view(),name='member_data'),
+    path('member_data/<int:member_id>/',ShowMemberData.as_view(),name='member_data'),
     
     # single or multiple created by manager
     path('single_import_users/', SingleRegisterUser.as_view(), name='single_import_users'),

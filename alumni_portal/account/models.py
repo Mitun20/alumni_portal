@@ -128,7 +128,7 @@ class Member(models.Model):
     email = models.EmailField(null=False)
 
     def __str__(self):
-        return f'{self.user.username} - {self.email}'
+        return self.email
 
 class Member_Skills(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE)

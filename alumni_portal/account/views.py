@@ -494,8 +494,8 @@ class CreatingUser(APIView):
 # alumni can edit member details
 class ShowMemberData(APIView):
     
-    def get(self, request):
-        member_id = request.data.get('member_id')
+    def get(self, request,member_id):
+        # member_id = request.data.get('member_id')
         
         try:
             member = Member.objects.get(id=member_id)
@@ -514,9 +514,9 @@ class ShowMemberData(APIView):
         }
         
         return Response({'member_data': member_data}, status=status.HTTP_200_OK)
-    def post(self, request):
+    def post(self, request,member_id):
         # Retrieve the member_id from the request data
-        member_id = request.data.get('member_id')
+        # member_id = request.data.get('member_id')
 
         # Fetch the Member instance based on member_id
         try:
@@ -574,9 +574,9 @@ class BulkRegisterUsers(APIView):
                 salutation = Salutation.objects.get(salutation=row['salutation'])
                 
                 # Fetch Batch and Course instances by their names
-                batch = Batch.objects.get(title=row['batch']) if 'batch_title' in row and not pd.isna(row['batch']) else None
-                course = Course.objects.get(title=row['course']) if 'course_title' in row and not pd.isna(row['course']) else None
-
+                batch = Batch.objects.filter(title=row['batch']).first() 
+                course = Course.objects.filter(title=row['course']).first()
+                
                 if group_name == 'Faculty':
                     # Generate a random password
                     password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
@@ -618,7 +618,7 @@ class BulkRegisterUsers(APIView):
 
                 else:
                     # Create Member without creating User
-                    member = Member.objects.create(
+                    member = Member.objects.create( 
                         salutation=salutation,  # Assign the Salutation instance here
                         gender=row['gender'],
                         dob=row['dob'],
@@ -752,3 +752,5 @@ class SingleRegisterUser(APIView):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        

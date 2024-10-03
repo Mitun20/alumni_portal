@@ -12,6 +12,7 @@ urlpatterns = [
     path('users/', Users.as_view(), name='user_list'),
     path('groups/', Groups.as_view(), name='group_list'),
     path('assign_group/', Assign_Group.as_view(), name='assign_group'),
+    path('deactivate_user/<int:user_id>/', DeactivateUser.as_view(), name='deactivate_user'),
     
     # alumni registration process
     path('register_user/', RegisterUsers.as_view(), name='register_user'),

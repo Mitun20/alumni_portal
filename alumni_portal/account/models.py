@@ -97,13 +97,6 @@ class Country(models.Model):
     def __str__(self):
         return self.country_name
 
-class UserGroup(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    group = models.ForeignKey(Group, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f'{self.user.username} - {self.group.name}'
-
 class Member(models.Model):
 
     GENDER_CHOICES = [
@@ -130,7 +123,6 @@ class Member(models.Model):
     batch = models.ForeignKey(Batch, on_delete=models.CASCADE,null=True, blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE,null=True, blank=True)
     about_me = models.TextField(null=True, blank=True)
-    department = models.ForeignKey(Department, on_delete=models.CASCADE,null=True, blank=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True)
     mobile_no = models.CharField(max_length=25,null=True, blank=True)
     email = models.EmailField(null=False)

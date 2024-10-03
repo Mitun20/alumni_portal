@@ -1,4 +1,5 @@
 import csv
+from django.db import IntegrityError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -17,6 +18,9 @@ from .models import *
 import random
 import string
 from django.core.mail import send_mail
+from .permissions import *
+
+
 
 class Login(APIView):
     def post(self, request):
@@ -111,6 +115,20 @@ class Assign_Group(APIView):
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
         except Group.DoesNotExist:
             return Response({'error': 'Group not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+# Deactivate user
+
+class DeactivateUser(APIView):
+    # permission_classes = [IsAuthenticated, IsAlumniManager]
+
+    def post(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+            user.is_active = request.data.get('is_active')
+            user.save()
+            return Response({"message": "User account deactivated successfully."}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"message": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
 # active data for dropdown
@@ -270,7 +288,7 @@ class CreateDepartment(APIView):
         return Response({"message": "Department created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveDepartment(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAlumniManager]
 
     def get(self, request):
         departments = Department.objects.all()
@@ -331,7 +349,7 @@ class InactiveDepartment(APIView):
 
 # Create, Retrieve,Deactivate and Update for Course
 class CreateCourse(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def post(self, request):
         course = Course(
@@ -344,7 +362,7 @@ class CreateCourse(APIView):
         return Response({"message": "Course created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveCourse(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         courses = Course.objects.all()
@@ -354,6 +372,7 @@ class RetrieveCourse(APIView):
                 "title": course.title,
                 "graduate": course.graduate,
                 "department": course.department.full_name,
+                "department_id": course.department.id,
                 "is_active": course.is_active
             }
             for course in courses
@@ -363,18 +382,18 @@ class RetrieveCourse(APIView):
 class UpdateCourse(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, course_id):
-        try:
-            course = Course.objects.get(id=course_id)
-            data = {
-                "title": course.title,
-                "graduate": course.graduate,
-                "department_id": course.department.id,
-                "is_active": course.is_active
-            }
-            return Response(data, status=status.HTTP_200_OK)
-        except Course.DoesNotExist:
-            return Response({"message": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+    # def get(self, request, course_id):
+    #     try:
+    #         course = Course.objects.get(id=course_id)
+    #         data = {
+    #             "title": course.title,
+    #             "graduate": course.graduate,
+    #             "department_id": course.department.id,
+    #             "is_active": course.is_active
+    #         }
+    #         return Response(data, status=status.HTTP_200_OK)
+    #     except Course.DoesNotExist:
+    #         return Response({"message": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request, course_id):
         try:
@@ -390,7 +409,7 @@ class UpdateCourse(APIView):
         return Response({"message": "Course updated successfully"}, status=status.HTTP_200_OK)
 
 class InactiveCourse(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     def put(self, request, course_id):
         
         if course_id is None:
@@ -448,7 +467,6 @@ class CreatingUser(APIView):
     def post(self, request):
         password = request.data.get('password')
         member_id = request.data.get('member_id')
-
         # Fetch the member object
         try:
             member = Member.objects.get(id=member_id)
@@ -456,11 +474,15 @@ class CreatingUser(APIView):
             return Response({'error': 'Member not found'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Create a user with the email as the username
-        user = User.objects.create_user(
-            username=member.email,  # Use email as the username
-            email=member.email,
-            password=password
-        )
+        try:
+            user = User.objects.create_user(
+                username=member.email,  # Use email as the username
+                email=member.email,
+                password=password
+            )
+        except IntegrityError:
+            return Response({'error': 'User with this email already exists'}, status=status.HTTP_400_BAD_REQUEST)
+        
         faculty_group = Group.objects.get(name='Alumni')
         user.groups.add(faculty_group)
         # Link the user to the member
@@ -471,6 +493,7 @@ class CreatingUser(APIView):
 
 # alumni can edit member details
 class ShowMemberData(APIView):
+    
     def get(self, request):
         member_id = request.data.get('member_id')
         
@@ -547,13 +570,12 @@ class BulkRegisterUsers(APIView):
 
         for index, row in df.iterrows():
             try:
-                # Fetch the Salutation instance by ID
-                salutation = Salutation.objects.get(id=row['salutation_id'])
-
-                # Fetch Batch, Course, Department instances by their IDs
-                batch = Batch.objects.get(id=row['batch']) if 'batch' in row and not pd.isna(row['batch']) else None
-                course = Course.objects.get(id=row['course']) if 'course' in row and not pd.isna(row['course']) else None
-                department = Department.objects.get(id=row['department']) if 'department' in row and not pd.isna(row['department']) else None
+                # Fetch the Salutation instance by name
+                salutation = Salutation.objects.get(salutation=row['salutation'])
+                
+                # Fetch Batch and Course instances by their names
+                batch = Batch.objects.get(title=row['batch']) if 'batch_title' in row and not pd.isna(row['batch']) else None
+                course = Course.objects.get(title=row['course']) if 'course_title' in row and not pd.isna(row['course']) else None
 
                 if group_name == 'Faculty':
                     # Generate a random password
@@ -579,7 +601,6 @@ class BulkRegisterUsers(APIView):
                         blood_group=row['blood_group'],
                         mobile_no=row['mobile_no'],
                         email=row['email'],
-                        department=department,  # Assign the Department instance
                         course=course,  # Assign the Course instance
                         batch=batch,  # Assign the Batch instance
                         profile_picture=row.get('profile_picture', None)
@@ -604,7 +625,6 @@ class BulkRegisterUsers(APIView):
                         blood_group=row['blood_group'],
                         mobile_no=row['mobile_no'],
                         email=row['email'],
-                        department=department,  # Assign the Department instance
                         course=course,  # Assign the Course instance
                         batch=batch,  # Assign the Batch instance
                         profile_picture=row.get('profile_picture', None)
@@ -647,7 +667,6 @@ class SingleRegisterUser(APIView):
         blood_group = request.data.get('blood_group')
         mobile_no = request.data.get('mobile_no')
         email = request.data.get('email')
-        department_id = request.data.get('department')
         course_id = request.data.get('course')
         batch_id = request.data.get('batch')
         profile_picture = request.data.get('profile_picture', None)
@@ -663,7 +682,6 @@ class SingleRegisterUser(APIView):
             # Fetch Batch, Course, Department instances by their IDs
             batch = Batch.objects.get(id=batch_id) if batch_id else None
             course = Course.objects.get(id=course_id) if course_id else None
-            department = Department.objects.get(id=department_id) if department_id else None
 
             if group_name == 'Faculty':
                 # Generate a random password
@@ -689,7 +707,6 @@ class SingleRegisterUser(APIView):
                     blood_group=blood_group,
                     mobile_no=mobile_no,
                     email=email,
-                    department=department,
                     course=course,
                     batch=batch,
                     profile_picture=profile_picture
@@ -714,7 +731,6 @@ class SingleRegisterUser(APIView):
                     blood_group=blood_group,
                     mobile_no=mobile_no,
                     email=email,
-                    department=department,
                     course=course,
                     batch=batch,
                     profile_picture=profile_picture

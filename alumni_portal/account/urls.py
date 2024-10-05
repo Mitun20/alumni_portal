@@ -60,5 +60,11 @@ urlpatterns = [
     path('create_member_skill/', CreateMemberSkill.as_view(), name='create_member_skill'), 
     path('retrieve_member_skills/<int:member_id>/', RetrieveMemberSkills.as_view(), name='retrieve_member_skills'),  
     path('update_member_skill/<int:member_skill_id>/', UpdateMemberSkill.as_view(), name='update_member_skill'),  
-    path('delete_member_skill/<int:member_skill_id>/', DeleteMemberSkill.as_view(), name='delete_member_skill'),  
+    path('delete_member_skill/<int:member_skill_id>/', DeleteMemberSkill.as_view(), name='delete_member_skill'),
+    
+    # member education
+    path('create_member_education/', CreateMemberEducation.as_view(), name='create_member_education'),  # Create
+    path('retrieve_member_education/<int:member_id>/', RetrieveMemberEducation.as_view(), name='retrieve_member_education'),  # Retrieve all
+    path('update_member_education/<int:education_id>/', UpdateMemberEducation.as_view(), name='update_member_education'),  # Update
+    path('delete_member_education/<int:education_id>/', DeleteMemberEducation.as_view(), name='delete_member_education'),  # Delete  
 ]

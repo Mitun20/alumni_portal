@@ -12,7 +12,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.utils.crypto import get_random_string
 from rest_framework import status
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer
+from .serializers import *
 import pandas as pd
 from django.contrib.auth.models import User
 from .models import *
@@ -915,3 +915,46 @@ class DeleteMemberSkill(APIView):
             return Response({"message": "Member skill deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         except Member_Skills.DoesNotExist:
             return Response({"message": "Member skill not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        
+# manage member education
+class CreateMemberEducation(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = MemberEducationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Member education created successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class RetrieveMemberEducation(APIView):
+    def get(self, request,member_id):
+        education_records = Member_Education.objects.filter(member_id=member_id)
+        serializer = MemberEducationSerializer(education_records, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class UpdateMemberEducation(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, request, education_id):
+        try:
+            education = Member_Education.objects.get(id=education_id)
+            serializer = MemberEducationSerializer(instance=education, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"message": "Member education updated successfully"}, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Member_Education.DoesNotExist:
+            return Response({"message": "Member education not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class DeleteMemberEducation(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, education_id):
+        try:
+            education = Member_Education.objects.get(id=education_id)
+            education.delete()
+            return Response({"message": "Member education deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except Member_Education.DoesNotExist:
+            return Response({"message": "Member education not found"}, status=status.HTTP_404_NOT_FOUND)

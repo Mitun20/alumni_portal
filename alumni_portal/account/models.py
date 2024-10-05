@@ -127,6 +127,7 @@ class Member(models.Model):
     mobile_no = models.CharField(max_length=25,null=True, blank=True)
     email = models.EmailField(null=False)
 
+
     def __str__(self):
         return self.email
 

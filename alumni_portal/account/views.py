@@ -1,5 +1,6 @@
 import csv
 from django.db import IntegrityError
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -28,6 +29,12 @@ class Login(APIView):
         username = request.data.get('username')
         password = request.data.get('password')
         user = authenticate(username=username, password=password)
+        member = None
+
+        try:
+            member = Member.objects.get(email=username)
+        except Member.DoesNotExist:
+            member = None  # Keep it None if member does not exist
 
         if user is not None:
             refresh = RefreshToken.for_user(user)
@@ -38,10 +45,11 @@ class Login(APIView):
                 'refresh': refresh_token,
                 'access': access_token,
                 'username': username,
-                "id":user.id
+                "user_id":user.id,
+                'member_id':member.id if member else None
             }, status=status.HTTP_200_OK)
         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
+    
 class ForgetPassword(APIView):
     def post(self, request):
         email = request.data.get('email')
@@ -90,18 +98,21 @@ class ChangePassword(APIView):
         
 # Assign Role
 class Users(APIView):
+    permission_classes = [IsAuthenticated,IsAlumniManager]
     def get(self, request):
         users = User.objects.all()
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
 
 class Groups(APIView):
+    permission_classes = [IsAuthenticated,IsAlumniManager]
     def get(self, request):
         groups = Group.objects.all()
         serializer = GroupSerializer(groups, many=True)
         return Response(serializer.data)
 
 class Assign_Group(APIView):
+    permission_classes = [IsAuthenticated,IsAlumniManager]
     def post(self, request):
         user_id = request.data.get('user_id')
         group_id = request.data.get('group_id')
@@ -119,7 +130,7 @@ class Assign_Group(APIView):
 # Deactivate user
 
 class DeactivateUser(APIView):
-    # permission_classes = [IsAuthenticated, IsAlumniManager]
+    permission_classes = [IsAuthenticated, IsAlumniManager]
 
     def post(self, request, user_id):
         try:
@@ -133,7 +144,7 @@ class DeactivateUser(APIView):
 
 # active data for dropdown
 class ActiveDepartment(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         departments = Department.objects.filter(is_active=True)
@@ -149,7 +160,7 @@ class ActiveDepartment(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class ActiveCourse(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         courses = Course.objects.filter(is_active=True)
@@ -168,7 +179,7 @@ class ActiveCourse(APIView):
 
 # Manage Salutation
 class CreateSalutation(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
     def post(self, request):
         salutation = Salutation(
             salutation= request.data['salutation'],
@@ -179,7 +190,7 @@ class CreateSalutation(APIView):
         return Response({"message": "Salutation created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveSalutation(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
     def get(self, request):
         salutations = Salutation.objects.all()
         data = [
@@ -193,7 +204,7 @@ class RetrieveSalutation(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateSalutation(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
     def get(self, request, salutation_id):
         try:
             salutation = Salutation.objects.get(id=salutation_id)
@@ -220,7 +231,7 @@ class UpdateSalutation(APIView):
 
 # Create, Retrieve, and Update for Batch
 class CreateBatch(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
 
     def post(self, request):
         batch = Batch(
@@ -232,7 +243,7 @@ class CreateBatch(APIView):
         return Response({"message": "Batch created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveBatch(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
 
     def get(self, request):
         batches = Batch.objects.all()
@@ -248,7 +259,7 @@ class RetrieveBatch(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateBatch(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
 
     def get(self, request, batch_id):
         try:
@@ -276,7 +287,7 @@ class UpdateBatch(APIView):
 
 # Create, Retrieve, Deactivate and Update for Department
 class CreateDepartment(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
 
     def post(self, request):
         department = Department(
@@ -288,7 +299,7 @@ class CreateDepartment(APIView):
         return Response({"message": "Department created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveDepartment(APIView):
-    permission_classes = [IsAuthenticated, IsAlumniManager]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
 
     def get(self, request):
         departments = Department.objects.all()
@@ -304,7 +315,7 @@ class RetrieveDepartment(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateDepartment(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
 
     def get(self, request, department_id):
         try:
@@ -331,7 +342,7 @@ class UpdateDepartment(APIView):
         return Response({"message": "Department updated successfully"}, status=status.HTTP_200_OK)
 
 class InactiveDepartment(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
     def put(self, request, department_id):
         
         if department_id is None:
@@ -349,7 +360,7 @@ class InactiveDepartment(APIView):
 
 # Create, Retrieve,Deactivate and Update for Course
 class CreateCourse(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
 
     def post(self, request):
         course = Course(
@@ -362,7 +373,7 @@ class CreateCourse(APIView):
         return Response({"message": "Course created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveCourse(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
 
     def get(self, request):
         courses = Course.objects.all()
@@ -380,7 +391,7 @@ class RetrieveCourse(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateCourse(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
 
     # def get(self, request, course_id):
     #     try:
@@ -409,7 +420,7 @@ class UpdateCourse(APIView):
         return Response({"message": "Course updated successfully"}, status=status.HTTP_200_OK)
 
 class InactiveCourse(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManager]
     def put(self, request, course_id):
         
         if course_id is None:
@@ -503,40 +514,32 @@ class ShowMemberData(APIView):
             return Response({'error': 'Member not found'}, status=status.HTTP_400_BAD_REQUEST)
         
         member_data = {
-            'salutation': member.salutation.salutation,
+            'salutation': member.salutation.id,
             'gender': member.gender,
             'dob': member.dob,
             'blood_group': member.blood_group,
             'mobile_no': member.mobile_no,
-            'batch': member.batch.title,
-            'course': member.course.title,
+            'batch': member.batch.id,
+            'course': member.course.id,
             'about_me': member.about_me,
         }
         
         return Response({'member_data': member_data}, status=status.HTTP_200_OK)
     def post(self, request,member_id):
-        # Retrieve the member_id from the request data
-        # member_id = request.data.get('member_id')
-
-        # Fetch the Member instance based on member_id
         try:
             member = Member.objects.get(id=member_id)
         except Member.DoesNotExist:
             return Response({'error': 'Member not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Get the updated data for the member
-        member_data = request.data.get('member')
-
         # Update member fields with the new data
-        member.salutation_id = member_data.get('salutation')
-        member.gender = member_data.get('gender')
-        member.dob = member_data.get('dob')
-        member.blood_group = member_data.get('blood_group')
-        member.batch_id = member_data.get('batch')
-        member.course_id = member_data.get('course')
-        member.about_me = member_data.get('about_me')
-        member.department_id = member_data.get('department')
-        member.mobile_no = member_data.get('mobile_no')
+        member.salutation_id = request.data.get('salutation')
+        member.gender = request.data.get('gender')
+        member.dob = request.data.get('dob')
+        member.blood_group = request.data.get('blood_group')
+        member.batch_id = request.data.get('batch')
+        member.course_id = request.data.get('course')
+        member.about_me = request.data.get('about_me')
+        member.mobile_no = request.data.get('mobile_no')
 
         # Save the updated member
         member.save()
@@ -546,7 +549,7 @@ class ShowMemberData(APIView):
 
 # Bulk Register by manager 
 class BulkRegisterUsers(APIView):
-
+    permission_classes = [IsAuthenticated,IsAlumniManager]
     def post(self, request):
         group_name = request.data.get('group_name')
         if not group_name:
@@ -567,8 +570,15 @@ class BulkRegisterUsers(APIView):
 
         created_users = []
         errors = []
+        seen_emails = set()  # Set to track seen emails
 
         for index, row in df.iterrows():
+            email = row['email']
+            if email in seen_emails or Member.objects.filter(email=email).exists():
+                errors.append({'email': email, 'error': 'Duplicate email found'})
+                continue  # Skip this row if the email is a duplicate
+            seen_emails.add(email)
+            
             try:
                 # Fetch the Salutation instance by name
                 salutation = Salutation.objects.get(salutation=row['salutation'])
@@ -654,7 +664,7 @@ class BulkRegisterUsers(APIView):
 
 # Single register by manager
 class SingleRegisterUser(APIView):
-
+    permission_classes = [IsAuthenticated,IsAlumniManager]
     def post(self, request):
         group_name = request.data.get('group_name')
         if not group_name:
@@ -674,7 +684,9 @@ class SingleRegisterUser(APIView):
         # Validate required fields
         if not email:
             return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
-
+        if Member.objects.filter(email=email).exists():
+            return Response({'error': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
+        
         try:
             # Fetch the Salutation instance by ID
             salutation = Salutation.objects.get(id=salutation_id)
@@ -688,11 +700,15 @@ class SingleRegisterUser(APIView):
                 password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
                 # Create User with email as username
-                user = User.objects.create_user(
-                    username=email,
-                    password=password,
-                    email=email,
+                try:
+                    user = User.objects.create_user(
+                        username=email,
+                        password=password,
+                        email=email,
                 )
+                except e:
+                    return Response({'error': 'User with this email already exists'}, status=status.HTTP_400_BAD_REQUEST)
+                
 
                 # Add the user to the Faculty group
                 faculty_group = Group.objects.get(name='Faculty')
@@ -752,5 +768,150 @@ class SingleRegisterUser(APIView):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
-        
+
+
+# manage skills
+
+class CreateSkill(APIView):
+    permission_classes = [IsAuthenticated,IsAlumniManager]
+
+    def post(self, request):
+        skill = Skill(
+            skill=request.data['skill'],
+            description=request.data.get('description', '')  # Use get for optional fields
+        )
+        skill.save()
+        return Response({"message": "Skill created successfully"}, status=status.HTTP_201_CREATED)
+
+class RetrieveSkill(APIView):
+    permission_classes = [IsAuthenticated,IsAlumniManager]
+    def get(self, request):
+        skills = Skill.objects.all()
+        data = [
+            {
+                "skill_id": skill.id,
+                "skill": skill.skill,
+                "description": skill.description
+            }
+            for skill in skills
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
+class UpdateSkill(APIView):
+    permission_classes = [IsAuthenticated,IsAlumniManager]
+
+    def get(self, request, skill_id):
+        try:
+            skill = Skill.objects.get(id=skill_id)
+            data = {
+                "skill": skill.skill,
+                "description": skill.description
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Skill.DoesNotExist:
+            return Response({"message": "Skill not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, skill_id):
+        try:
+            skill = Skill.objects.get(id=skill_id)
+        except Skill.DoesNotExist:
+            return Response({"message": "Skill not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        skill.skill = request.data["skill"]
+        skill.description = request.data.get("description", skill.description)  # Update if provided
+        skill.save()
+
+        return Response({"message": "Skill updated successfully"}, status=status.HTTP_200_OK)
+
+# profile picture
+class ProfilePicture(APIView):
+    permission_classes = [IsAuthenticated,IsAlumni]
+    def get(self, request,member_id):
+        member = Member.objects.get(id=member_id)
+        data = {
+            "profile_picture": request.build_absolute_uri(member.profile_picture.url) if member.profile_picture else None
+
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    def post(self, request,member_id):
+        member = Member.objects.get(id=member_id)
+        profile_picture = request.FILES.get('profile_picture')
+
+        if not profile_picture:
+            return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update the profile picture
+        member.profile_picture = profile_picture
+        member.save()
+
+        return Response({'message': 'Profile picture updated successfully'}, status=status.HTTP_200_OK)
+
+    def delete(self, request,member_id):
+        member = Member.objects.get(id=member_id)
+
+        if member.profile_picture:
+            member.profile_picture.delete(save=False)  # Delete the file from storage
+            member.profile_picture = None
+            member.save()
+            return Response({'message': 'Profile picture deleted successfully'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'No profile picture to delete'}, status=status.HTTP_404_NOT_FOUND)
+
+
+# member skills
+class CreateMemberSkill(APIView):
+    permission_classes = [IsAuthenticated,IsAlumni]
+
+    def post(self, request):
+        try:
+            member = Member.objects.get(id=request.data['member_id'])
+            skill = Skill.objects.get(id=request.data['skill_id'])
+            member_skill = Member_Skills(member=member, skill=skill)
+            member_skill.save()
+            return Response({"message": "Member skill created successfully"}, status=status.HTTP_201_CREATED)
+        except (Member.DoesNotExist, Skill.DoesNotExist):
+            return Response({"message": "Member or Skill not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class RetrieveMemberSkills(APIView):
+    permission_classes = [IsAuthenticated,IsAlumni]
+    def get(self, request,member_id):
+        member_skills = Member_Skills.objects.filter(member_id=member_id)
+        data = [
+            {
+                "skill_id": member_skill.skill.id,
+            }
+            for member_skill in member_skills
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
+class UpdateMemberSkill(APIView):
+    permission_classes = [IsAuthenticated,IsAlumni]
+
+    def post(self, request, member_skill_id):
+        try:
+            member_skill = Member_Skills.objects.get(id=member_skill_id)
+            member = Member.objects.get(id=request.data['member_id'])
+            skill = Skill.objects.get(id=request.data['skill_id'])
+
+            member_skill.member = member
+            member_skill.skill = skill
+            member_skill.save()
+
+            return Response({"message": "Member skill updated successfully"}, status=status.HTTP_200_OK)
+        except Member_Skills.DoesNotExist:
+            return Response({"message": "Member skill not found"}, status=status.HTTP_404_NOT_FOUND)
+        except (Member.DoesNotExist, Skill.DoesNotExist):
+            return Response({"message": "Member or Skill not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class DeleteMemberSkill(APIView):
+    permission_classes = [IsAuthenticated,IsAlumni]
+
+    def delete(self, request, member_skill_id):
+        try:
+            member_skill = Member_Skills.objects.get(id=member_skill_id)
+            member_skill.delete()
+            return Response({"message": "Member skill deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except Member_Skills.DoesNotExist:
+            return Response({"message": "Member skill not found"}, status=status.HTTP_404_NOT_FOUND)

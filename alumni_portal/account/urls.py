@@ -48,4 +48,17 @@ urlpatterns = [
     # Active department and course
     path('active_department/', ActiveDepartment.as_view(), name='active_department'),
     path('active_course/', ActiveCourse.as_view(), name='active_course'),
+    # Skills
+    path('create_skill/', CreateSkill.as_view(), name='create_skill'),  
+    path('retrieve_skills/', RetrieveSkill.as_view(), name='retrieve_skills'),  
+    path('update_skill/<int:skill_id>/', UpdateSkill.as_view(), name='update_skill'),
+    
+    # edit Profile
+    path('profile_picture/<int:member_id>/', ProfilePicture.as_view(), name='profile_picture'),
+    
+    # member skills
+    path('create_member_skill/', CreateMemberSkill.as_view(), name='create_member_skill'), 
+    path('retrieve_member_skills/<int:member_id>/', RetrieveMemberSkills.as_view(), name='retrieve_member_skills'),  
+    path('update_member_skill/<int:member_skill_id>/', UpdateMemberSkill.as_view(), name='update_member_skill'),  
+    path('delete_member_skill/<int:member_skill_id>/', DeleteMemberSkill.as_view(), name='delete_member_skill'),  
 ]

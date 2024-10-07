@@ -20,7 +20,7 @@ import random
 import string
 from django.core.mail import send_mail
 from .permissions import *
-
+from django.db.models import Q
 
 
 class Login(APIView):
@@ -98,21 +98,21 @@ class ChangePassword(APIView):
         
 # Assign Role
 class Users(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         users = User.objects.all()
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
 
 class Groups(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         groups = Group.objects.all()
         serializer = GroupSerializer(groups, many=True)
         return Response(serializer.data)
 
 class Assign_Group(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         user_id = request.data.get('user_id')
         group_id = request.data.get('group_id')
@@ -130,7 +130,7 @@ class Assign_Group(APIView):
 # Deactivate user
 
 class DeactivateUser(APIView):
-    permission_classes = [IsAuthenticated, IsAlumniManager]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, user_id):
         try:
@@ -179,7 +179,7 @@ class ActiveCourse(APIView):
 
 # Manage Salutation
 class CreateSalutation(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         salutation = Salutation(
             salutation= request.data['salutation'],
@@ -190,7 +190,7 @@ class CreateSalutation(APIView):
         return Response({"message": "Salutation created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveSalutation(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         salutations = Salutation.objects.all()
         data = [
@@ -204,7 +204,7 @@ class RetrieveSalutation(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateSalutation(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
     def get(self, request, salutation_id):
         try:
             salutation = Salutation.objects.get(id=salutation_id)
@@ -229,9 +229,9 @@ class UpdateSalutation(APIView):
         return Response({"message": "Salutation updated successfully"}, status=status.HTTP_200_OK)
 
 
-# Create, Retrieve, and Update for Batch
+# manage Batch
 class CreateBatch(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         batch = Batch(
@@ -243,7 +243,7 @@ class CreateBatch(APIView):
         return Response({"message": "Batch created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveBatch(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         batches = Batch.objects.all()
@@ -259,7 +259,7 @@ class RetrieveBatch(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateBatch(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, batch_id):
         try:
@@ -285,9 +285,9 @@ class UpdateBatch(APIView):
 
         return Response({"message": "Batch updated successfully"}, status=status.HTTP_200_OK)
 
-# Create, Retrieve, Deactivate and Update for Department
+# manage Department
 class CreateDepartment(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         department = Department(
@@ -299,7 +299,7 @@ class CreateDepartment(APIView):
         return Response({"message": "Department created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveDepartment(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    # permission_classes = [IsAuthenticated,IsAlumniManager]
 
     def get(self, request):
         departments = Department.objects.all()
@@ -315,7 +315,7 @@ class RetrieveDepartment(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateDepartment(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, department_id):
         try:
@@ -342,7 +342,7 @@ class UpdateDepartment(APIView):
         return Response({"message": "Department updated successfully"}, status=status.HTTP_200_OK)
 
 class InactiveDepartment(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
     def put(self, request, department_id):
         
         if department_id is None:
@@ -358,9 +358,9 @@ class InactiveDepartment(APIView):
             return Response({"message": "Department not found"}, status=status.HTTP_404_NOT_FOUND)
         
 
-# Create, Retrieve,Deactivate and Update for Course
+# manage course
 class CreateCourse(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         course = Course(
@@ -373,7 +373,7 @@ class CreateCourse(APIView):
         return Response({"message": "Course created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveCourse(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         courses = Course.objects.all()
@@ -391,7 +391,7 @@ class RetrieveCourse(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateCourse(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
 
     # def get(self, request, course_id):
     #     try:
@@ -420,7 +420,7 @@ class UpdateCourse(APIView):
         return Response({"message": "Course updated successfully"}, status=status.HTTP_200_OK)
 
 class InactiveCourse(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
     def put(self, request, course_id):
         
         if course_id is None:
@@ -435,11 +435,237 @@ class InactiveCourse(APIView):
         except Course.DoesNotExist:
             return Response({"message": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
         
-        
+
+# manage Institution Views
+class CreateInstitution(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        institution = Institution(
+            title=request.data['title'],
+            description=request.data.get('description', '')
+        )
+        institution.save()
+        return Response({"message": "Institution created successfully"}, status=status.HTTP_201_CREATED)
+
+class RetrieveInstitution(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        institutions = Institution.objects.all()
+        data = [{"id": inst.id, "title": inst.title, "description": inst.description} for inst in institutions]
+        return Response(data, status=status.HTTP_200_OK)
+
+class UpdateInstitution(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, institution_id):
+        try:
+            institution = Institution.objects.get(id=institution_id)
+            data = {
+                "title": institution.title,
+                "description": institution.description
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Institution.DoesNotExist:
+            return Response({"message": "Institution not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, institution_id):
+        try:
+            institution = Institution.objects.get(id=institution_id)
+        except Institution.DoesNotExist:
+            return Response({"message": "Institution not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        institution.title = request.data.get("title", institution.title)
+        institution.description = request.data.get("description", institution.description)
+        institution.save()
+
+        return Response({"message": "Institution updated successfully"}, status=status.HTTP_200_OK)
+
+# manage role
+class CreateRole(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        role = Role(role=request.data['role'], description=request.data.get('description', ''))
+        role.save()
+        return Response({"message": "Role created successfully"}, status=status.HTTP_201_CREATED)
+
+class RetrieveRoles(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        roles = Role.objects.all()
+        data = [{"id": role.id, "role": role.role, "description": role.description} for role in roles]
+        return Response(data, status=status.HTTP_200_OK)
+
+class UpdateRole(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, role_id):
+        try:
+            role = Role.objects.get(id=role_id)
+            data = {
+                "role": role.role,
+                "description": role.description
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Role.DoesNotExist:
+            return Response({"message": "Role not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, role_id):
+        try:
+            role = Role.objects.get(id=role_id)
+        except Role.DoesNotExist:
+            return Response({"message": "Role not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        role.role = request.data.get("role", role.role)
+        role.description = request.data.get("description", role.description)
+        role.save()
+
+        return Response({"message": "Role updated successfully"}, status=status.HTTP_200_OK)
+
+# manage Industry Views
+class CreateIndustry(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        industry = Industry(
+            title=request.data['title'],
+            description=request.data['description'],
+            website=request.data['website']
+        )
+        industry.save()
+        return Response({"message": "Industry created successfully"}, status=status.HTTP_201_CREATED)
+
+class RetrieveIndustry(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        industries = Industry.objects.all()
+        data = [{"id": ind.id, "title": ind.title, "description": ind.description, "website": ind.website} for ind in industries]
+        return Response(data, status=status.HTTP_200_OK)
+
+class UpdateIndustry(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, industry_id):
+        try:
+            industry = Industry.objects.get(id=industry_id)
+            data = {
+                "title": industry.title,
+                "description": industry.description,
+                "website": industry.website
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Industry.DoesNotExist:
+            return Response({"message": "Industry not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, industry_id):
+        try:
+            industry = Industry.objects.get(id=industry_id)
+        except Industry.DoesNotExist:
+            return Response({"message": "Industry not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        industry.title = request.data.get("title", industry.title)
+        industry.description = request.data.get("description", industry.description)
+        industry.website = request.data.get("website", industry.website)
+        industry.save()
+
+        return Response({"message": "Industry updated successfully"}, status=status.HTTP_200_OK)
+
+# manage Location Views
+class CreateLocation(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        location = Location(location=request.data['location'])
+        location.save()
+        return Response({"message": "Location created successfully"}, status=status.HTTP_201_CREATED)
+
+class RetrieveLocation(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        locations = Location.objects.all()
+        data = [{"id": loc.id, "location": loc.location} for loc in locations]
+        return Response(data, status=status.HTTP_200_OK)
+
+class UpdateLocation(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, location_id):
+        try:
+            location = Location.objects.get(id=location_id)
+            data = {
+                "location": location.location
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Location.DoesNotExist:
+            return Response({"message": "Location not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, location_id):
+        try:
+            location = Location.objects.get(id=location_id)
+        except Location.DoesNotExist:
+            return Response({"message": "Location not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        location.location = request.data.get("location", location.location)
+        location.save()
+
+        return Response({"message": "Location updated successfully"}, status=status.HTTP_200_OK)
+
+
+# manage Country 
+class CreateCountry(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        country = Country(
+            country_name=request.data['country_name'],
+            country_code=request.data.get('country_code', '')
+        )
+        country.save()
+        return Response({"message": "Country created successfully"}, status=status.HTTP_201_CREATED)
+
+class RetrieveCountry(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        countries = Country.objects.all()
+        data = [{"id": country.id, "country_name": country.country_name, "country_code": country.country_code} for country in countries]
+        return Response(data, status=status.HTTP_200_OK)
+
+class UpdateCountry(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, country_id):
+        try:
+            country = Country.objects.get(id=country_id)
+            data = {
+                "country_name": country.country_name,
+                "country_code": country.country_code
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Country.DoesNotExist:
+            return Response({"message": "Country not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, country_id):
+        try:
+            country = Country.objects.get(id=country_id)
+        except Country.DoesNotExist:
+            return Response({"message": "Country not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        country.country_name = request.data.get("country_name", country.country_name)
+        country.country_code = request.data.get("country_code", country.country_code)
+        country.save()
+
+        return Response({"message": "Country updated successfully"}, status=status.HTTP_200_OK)
+
 
 # register
 
-# aluminin can register
+# alumni can register
 class RegisterUsers(APIView):
     def post(self, request):
         email = request.data.get('email')
@@ -476,6 +702,8 @@ class RegisterUsers(APIView):
 # alumni set password
 class CreatingUser(APIView):
     def post(self, request):
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
         password = request.data.get('password')
         member_id = request.data.get('member_id')
         # Fetch the member object
@@ -487,7 +715,9 @@ class CreatingUser(APIView):
         # Create a user with the email as the username
         try:
             user = User.objects.create_user(
-                username=member.email,  # Use email as the username
+                username=member.email,
+                first_name=first_name,
+                last_name=last_name,
                 email=member.email,
                 password=password
             )
@@ -549,7 +779,7 @@ class ShowMemberData(APIView):
 
 # Bulk Register by manager 
 class BulkRegisterUsers(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         group_name = request.data.get('group_name')
         if not group_name:
@@ -664,7 +894,7 @@ class BulkRegisterUsers(APIView):
 
 # Single register by manager
 class SingleRegisterUser(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         group_name = request.data.get('group_name')
         if not group_name:
@@ -773,7 +1003,7 @@ class SingleRegisterUser(APIView):
 # manage skills
 
 class CreateSkill(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         skill = Skill(
@@ -784,7 +1014,7 @@ class CreateSkill(APIView):
         return Response({"message": "Skill created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveSkill(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         skills = Skill.objects.all()
         data = [
@@ -798,7 +1028,7 @@ class RetrieveSkill(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateSkill(APIView):
-    permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, skill_id):
         try:
@@ -860,14 +1090,18 @@ class ProfilePicture(APIView):
             return Response({'error': 'No profile picture to delete'}, status=status.HTTP_404_NOT_FOUND)
 
 
-# member skills
+# manage member skills
 class CreateMemberSkill(APIView):
-    permission_classes = [IsAuthenticated,IsAlumni]
+    # permission_classes = [IsAuthenticated,IsAlumni]
 
     def post(self, request):
         try:
             member = Member.objects.get(id=request.data['member_id'])
             skill = Skill.objects.get(id=request.data['skill_id'])
+            
+            if Member_Skills.objects.filter(member=member, skill=skill).exists():
+                return Response({"message": "Member already has this skill"}, status=status.HTTP_400_BAD_REQUEST)
+            
             member_skill = Member_Skills(member=member, skill=skill)
             member_skill.save()
             return Response({"message": "Member skill created successfully"}, status=status.HTTP_201_CREATED)
@@ -875,12 +1109,13 @@ class CreateMemberSkill(APIView):
             return Response({"message": "Member or Skill not found"}, status=status.HTTP_404_NOT_FOUND)
 
 class RetrieveMemberSkills(APIView):
-    permission_classes = [IsAuthenticated,IsAlumni]
+    # permission_classes = [IsAuthenticated,IsAlumni]
     def get(self, request,member_id):
         member_skills = Member_Skills.objects.filter(member_id=member_id)
         data = [
             {
                 "skill_id": member_skill.skill.id,
+                "skill_name":member_skill.skill.skill
             }
             for member_skill in member_skills
         ]
@@ -936,7 +1171,14 @@ class RetrieveMemberEducation(APIView):
 
 class UpdateMemberEducation(APIView):
     # permission_classes = [IsAuthenticated]
-
+    def get(self, request, education_id):
+        try:
+            education_record = Member_Education.objects.get(id=education_id)
+            serializer = MemberEducationSerializer(education_record)  # No many=True since it's a single instance
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Member_Education.DoesNotExist:
+            return Response({"message": "Member education not found"}, status=status.HTTP_404_NOT_FOUND)
+        
     def post(self, request, education_id):
         try:
             education = Member_Education.objects.get(id=education_id)
@@ -958,3 +1200,165 @@ class DeleteMemberEducation(APIView):
             return Response({"message": "Member education deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         except Member_Education.DoesNotExist:
             return Response({"message": "Member education not found"}, status=status.HTTP_404_NOT_FOUND)
+
+# manage member experience
+class CreateMemberExperience(APIView):
+    permission_classes = [IsAuthenticated]  # Uncomment if you want authentication
+
+    def post(self, request):
+        serializer = MemberExperienceSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Member experience created successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class RetrieveMemberExperience(APIView):
+    permission_classes = [IsAuthenticated] 
+    def get(self, request, member_id):
+        experience_records = Member_Experience.objects.filter(member_id=member_id)
+        serializer = MemberExperienceSerializer(experience_records, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UpdateMemberExperience(APIView):
+    permission_classes = [IsAuthenticated]  # Uncomment if you want authentication
+    def get(self, request, experience_id):
+        try:
+            experience_record = Member_Experience.objects.get(id=experience_id)
+            serializer = MemberExperienceSerializer(experience_record)  # Remove many=True
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Member_Experience.DoesNotExist:
+            return Response({"message": "Member experience not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+    def post(self, request, experience_id):
+        try:
+            experience = Member_Experience.objects.get(id=experience_id)
+            serializer = MemberExperienceSerializer(instance=experience, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"message": "Member experience updated successfully"}, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Member_Experience.DoesNotExist:
+            return Response({"message": "Member experience not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+class DeleteMemberExperience(APIView):
+    
+    permission_classes = [IsAuthenticated]  
+    def delete(self, request, experience_id):
+        try:
+            experience = Member_Experience.objects.get(id=experience_id)
+            experience.delete()
+            return Response({"message": "Member experience deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except Member_Experience.DoesNotExist:
+            return Response({"message": "Member experience not found"}, status=status.HTTP_404_NOT_FOUND)
+
+# contact details for alumni
+class CreateAlumni(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = AlumniSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Alumni contacts created successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class RetrieveAlumni(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, member_id):
+        try:
+            alumni_record = Alumni.objects.get(member_id=member_id)  # Use get() here
+            serializer = AlumniSerializer(alumni_record)  # No need for many=True since it's a single object
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Alumni.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Alumni.MultipleObjectsReturned:
+            return Response({"detail": "Multiple records found."}, status=status.HTTP_400_BAD_REQUEST)
+
+class UpdateAlumni(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, member_id):
+        try:
+            alumni = Alumni.objects.get(member_id=member_id)
+            serializer = AlumniSerializer(instance=alumni, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"message": "Alumni updated successfully"}, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Alumni.DoesNotExist:
+            return Response({"message": "Alumni record not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class MemberFilterView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # Extract data from the JSON body
+        batch = request.data.get('batch', None)
+        role = request.data.get('role', None)
+        course = request.data.get('course', None)
+        department = request.data.get('department', None)
+        industry = request.data.get('industry', None)
+        skill = request.data.get('skill', None)
+        country = request.data.get('country', None)
+        institution = request.data.get('institution', None)
+        location = request.data.get('location', None)
+        first_name = request.data.get('first_name', None)
+        email = request.data.get('email', None)
+        dob = request.data.get('dob', None)
+
+        # Create a dictionary for the filter arguments using Q objects
+        filters = Q(user__isnull=False)  # Ensure user is not null
+
+        if batch:
+            filters &= Q(batch__id=batch)
+        if role:
+            filters &= Q(member_experience__role__id=role)
+        if course:
+            filters &= Q(course__id=course)
+        if department:
+            filters &= Q(course__department__id=department)
+        if industry:
+            filters &= Q(member_experience__industry__id=industry)
+        if skill:
+            filters &= Q(member_skills__skill__id=skill)
+          # Assuming location model has a country field
+        if institution:
+            filters &= Q(member_education__institute__id=institution)
+        if location:
+            filters &= Q(member_experience__location__id=location) | Q(member_education__location__id=location)
+        
+        # Additional filters for personal details
+        if first_name:
+            filters &= Q(user__first_name__icontains=first_name)
+        if email:
+            filters &= Q(email__icontains=email)
+        if dob:
+            try:
+                filters &= Q(dob=dob)  # Assuming dob is in 'YYYY-MM-DD' format
+            except ValueError:
+                return Response({"error": "Invalid date format for DOB. Use 'YYYY-MM-DD'."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Apply the filters to the Member queryset
+        queryset = Member.objects.filter(filters).distinct()
+
+        # Check if the queryset is empty
+        if not queryset.exists():
+            return Response({"message": "No matching records found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Serialize the filtered data
+        serializer = MemberListSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class MemberDetailView(APIView):
+    def get(self, request, member_id):
+        try:
+            member = Member.objects.get(id=member_id)
+        except Member.DoesNotExist:
+            return Response({'error': 'Member not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = MemberDetailSerializer(member)
+        return Response(serializer.data, status=status.HTTP_200_OK)

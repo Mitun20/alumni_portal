@@ -80,6 +80,11 @@ urlpatterns = [
     path('retrieve_institutions/', RetrieveInstitution.as_view(), name='retrieve_institution'),
     path('update_institution/<int:institution_id>/', UpdateInstitution.as_view(), name='update_institution'),
 
+    # Role
+    path('create_role/', CreateRole.as_view(), name='create_role'),
+    path('retrieve_role/', RetrieveRoles.as_view(), name='retrieve_role'),
+    path('update_role/<int:role_id>/', UpdateRole.as_view(), name='update_role'),
+
     # Industry 
     path('create_industry/', CreateIndustry.as_view(), name='create_industry'),
     path('retrieve_industries/', RetrieveIndustry.as_view(), name='retrieve_industries'),

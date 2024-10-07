@@ -1055,7 +1055,7 @@ class UpdateSkill(APIView):
 
 # profile picture
 class ProfilePicture(APIView):
-    permission_classes = [IsAuthenticated,IsAlumni]
+    permission_classes = [IsAuthenticated]
     def get(self, request,member_id):
         member = Member.objects.get(id=member_id)
         data = {
@@ -1122,7 +1122,7 @@ class RetrieveMemberSkills(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateMemberSkill(APIView):
-    permission_classes = [IsAuthenticated,IsAlumni]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, member_skill_id):
         try:
@@ -1141,7 +1141,7 @@ class UpdateMemberSkill(APIView):
             return Response({"message": "Member or Skill not found"}, status=status.HTTP_404_NOT_FOUND)
 
 class DeleteMemberSkill(APIView):
-    permission_classes = [IsAuthenticated,IsAlumni]
+    permission_classes = [IsAuthenticated]
 
     def delete(self, request, member_skill_id):
         try:

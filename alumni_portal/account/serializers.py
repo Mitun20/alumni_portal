@@ -47,22 +47,6 @@ class ExperienceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Member_Experience
         fields = ['industry', 'role', 'start_date', 'end_date', 'is_currently_working', 'location']
-
-class MemberListSerializer(serializers.ModelSerializer):
-    first_name = serializers.CharField(source='user.first_name')
-    last_name = serializers.CharField(source='user.last_name')
-    batch = serializers.IntegerField(source='batch.id')
-    course = serializers.IntegerField(source='course.id')
-
-    class Meta:
-        model = Member
-        fields = ['id','first_name', 'last_name', 'email', 'batch', 'course','profile_picture']
-
-    def get_first_name(self, obj):
-        # Handle the case where user is None
-        if obj.user:
-            return obj.user.first_name
-        return None  # or return a default value like 'Unknown'
     
     
 class MemberDetailSerializer(serializers.ModelSerializer):

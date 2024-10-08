@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from account.models import *
 
-# Job Post Model
+
 class JobPost(models.Model):
     POST_TYPE_CHOICES = [
         ('Job', 'Job'),
@@ -30,7 +30,7 @@ class JobPost(models.Model):
     def __str__(self):
         return self.job_title
 
-# Application Model
+
 class Application(models.Model):
     full_name = models.CharField(max_length=255)
     email = models.EmailField(max_length=255)
@@ -46,7 +46,7 @@ class Application(models.Model):
     def __str__(self):
         return self.full_name
 
-# Business Directory Model
+
 class BusinessDirectory(models.Model):
     business_name = models.CharField(max_length=255)
     description = models.TextField()
@@ -64,7 +64,7 @@ class BusinessDirectory(models.Model):
     def __str__(self):
         return self.business_name
 
-# Job Comment Model
+
 class JobComment(models.Model):
     job = models.ForeignKey(JobPost, on_delete=models.CASCADE)
     comment_by = models.ForeignKey(User, on_delete=models.CASCADE)

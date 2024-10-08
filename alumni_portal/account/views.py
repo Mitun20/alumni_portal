@@ -105,7 +105,7 @@ class Users(APIView):
         return Response(serializer.data)
 
 class Groups(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     def get(self, request):
         groups = Group.objects.all()
         serializer = GroupSerializer(groups, many=True)
@@ -373,7 +373,7 @@ class CreateCourse(APIView):
         return Response({"message": "Course created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveCourse(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         courses = Course.objects.all()
@@ -482,6 +482,83 @@ class UpdateInstitution(APIView):
 
         return Response({"message": "Institution updated successfully"}, status=status.HTTP_200_OK)
 
+# manage social media
+
+class CreateSocialMedia(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        social_media = Social_Media(
+            title=request.data['title'],
+            icon=request.FILES['icon'],  # Assuming you're uploading a file
+            url=request.data['url'],
+            is_active=request.data.get('is_active', True)
+        )
+        social_media.save()
+        return Response({"message": "Social Media entry created successfully"}, status=status.HTTP_201_CREATED)
+
+class RetrieveSocialMedia(APIView):
+    def get(self, request):
+        social_media_entries = Social_Media.objects.all()
+        data = [
+            {
+                "id": sm.id,
+                "title": sm.title,
+                "icon": request.build_absolute_uri(sm.icon.url) if sm.icon else None,
+                "url": sm.url,
+                "is_active": sm.is_active
+            }
+            for sm in social_media_entries
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class UpdateSocialMedia(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, social_media_id):
+        try:
+            social_media = Social_Media.objects.get(id=social_media_id)
+            data = {
+                "title": social_media.title,
+                "icon": request.build_absolute_uri(social_media.icon.url) if social_media.icon else None,
+                "url": social_media.url,
+                "is_active": social_media.is_active
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Social_Media.DoesNotExist:
+            return Response({"message": "Social Media entry not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+    def post(self, request, social_media_id):
+        try:
+            social_media = Social_Media.objects.get(id=social_media_id)
+        except Social_Media.DoesNotExist:
+            return Response({"message": "Social Media entry not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        social_media.title = request.data.get("title", social_media.title)
+        if 'icon' in request.FILES:
+            social_media.icon = request.FILES['icon']
+        social_media.url = request.data.get("url", social_media.url)
+        social_media.is_active = request.data.get("is_active", social_media.is_active)
+        social_media.save()
+
+        return Response({"message": "Social Media entry updated successfully"}, status=status.HTTP_200_OK)
+
+class InactiveSocialMedia(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, social_media_id):
+        if social_media_id is None:
+            return Response({"message": "Social Media ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            social_media = Social_Media.objects.get(id=social_media_id)
+            social_media.is_active = request.data.get('is_active', not social_media.is_active)
+            social_media.save()
+            return Response({"message": "Social Media status has been updated successfully"}, status=status.HTTP_200_OK)
+        except Social_Media.DoesNotExist:
+            return Response({"message": "Social Media entry not found"}, status=status.HTTP_404_NOT_FOUND)
+        
 # manage role
 class CreateRole(APIView):
     permission_classes = [IsAuthenticated]
@@ -492,7 +569,7 @@ class CreateRole(APIView):
         return Response({"message": "Role created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveRoles(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         roles = Role.objects.all()
@@ -731,7 +808,7 @@ class CreatingUser(APIView):
         member.save()
 
         return Response({'member_id':member.id,'message': 'User account created and linked to member successfully'}, status=status.HTTP_201_CREATED)
-
+        
 # alumni can edit member details
 class ShowMemberData(APIView):
     
@@ -774,7 +851,7 @@ class ShowMemberData(APIView):
         # Save the updated member
         member.save()
 
-        return Response({'message': 'Member Added successfully'}, status=status.HTTP_200_OK)
+        return Response({'message': 'Member Updated successfully'}, status=status.HTTP_200_OK)
 
 
 # Bulk Register by manager 
@@ -894,7 +971,7 @@ class BulkRegisterUsers(APIView):
 
 # Single register by manager
 class SingleRegisterUser(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     def post(self, request):
         group_name = request.data.get('group_name')
         if not group_name:
@@ -907,10 +984,10 @@ class SingleRegisterUser(APIView):
         blood_group = request.data.get('blood_group')
         mobile_no = request.data.get('mobile_no')
         email = request.data.get('email')
-        course_id = request.data.get('course')
-        batch_id = request.data.get('batch')
+        course_id = request.data.get('course_id')
+        batch_id = request.data.get('batch_id')
         profile_picture = request.data.get('profile_picture', None)
-
+        print("ok 1")
         # Validate required fields
         if not email:
             return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -924,26 +1001,28 @@ class SingleRegisterUser(APIView):
             # Fetch Batch, Course, Department instances by their IDs
             batch = Batch.objects.get(id=batch_id) if batch_id else None
             course = Course.objects.get(id=course_id) if course_id else None
-
+            print("ok 2")
             if group_name == 'Faculty':
                 # Generate a random password
                 password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
                 # Create User with email as username
+                print("ok 3")
                 try:
                     user = User.objects.create_user(
                         username=email,
                         password=password,
                         email=email,
                 )
+                    print("ok 4")
                 except e:
                     return Response({'error': 'User with this email already exists'}, status=status.HTTP_400_BAD_REQUEST)
-                
+                print("ok 5")
 
                 # Add the user to the Faculty group
                 faculty_group = Group.objects.get(name='Faculty')
                 user.groups.add(faculty_group)
-
+                print("ok 6")
                 # Create Member
                 member = Member.objects.create(
                     user=user,
@@ -1014,7 +1093,7 @@ class CreateSkill(APIView):
         return Response({"message": "Skill created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveSkill(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     def get(self, request):
         skills = Skill.objects.all()
         data = [
@@ -1089,7 +1168,61 @@ class ProfilePicture(APIView):
         else:
             return Response({'error': 'No profile picture to delete'}, status=status.HTTP_404_NOT_FOUND)
 
+# basic profile
+class MemberData(APIView):
+    
+    def get(self, request,member_id):
+        # member_id = request.data.get('member_id')
+        
+        try:
+            member = Member.objects.get(id=member_id)
+        except Member.DoesNotExist:
+            return Response({'error': 'Member not found'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        member_data = {
+            'salutation': member.salutation.id,
+            'first_name': member.user.first_name,
+            'last_name': member.user.last_name,
+            'email': member.email,
+            'gender': member.gender,
+            'dob': member.dob,
+            'blood_group': member.blood_group,
+            'mobile_no': member.mobile_no,
+            'batch': member.batch.id,
+            'course': member.course.id,
+            'about_me': member.about_me,
+        }
+        
+        return Response({'member_data': member_data}, status=status.HTTP_200_OK)
+    def post(self, request,member_id):
+        try:
+            member = Member.objects.get(id=member_id)
+        except Member.DoesNotExist:
+            return Response({'error': 'Member not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Update member fields with the new data
+        user= User.objects.get(email=member.email)
+        
+        user.first_name = request.data.get('first_name')
+        user.last_name = request.data.get('last_name')
+        member.salutation_id = request.data.get('salutation')
+        member.email = request.data.get('email')
+        user.email = member.email
+        member.gender = request.data.get('gender')
+        member.dob = request.data.get('dob')
+        member.blood_group = request.data.get('blood_group')
+        member.batch_id = request.data.get('batch')
+        member.course_id = request.data.get('course')
+        member.about_me = request.data.get('about_me')
+        member.mobile_no = request.data.get('mobile_no')
+
+        user.save()
+        # Save the updated member
+        member.save()
+
+        return Response({'message': 'Member Updated successfully'}, status=status.HTTP_200_OK)
+
+# ret
 # manage member skills
 class CreateMemberSkill(APIView):
     # permission_classes = [IsAuthenticated,IsAlumni]
@@ -1164,13 +1297,27 @@ class CreateMemberEducation(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RetrieveMemberEducation(APIView):
-    def get(self, request,member_id):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, member_id):
         education_records = Member_Education.objects.filter(member_id=member_id)
-        serializer = MemberEducationSerializer(education_records, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        data = []
+
+        for record in education_records:
+            data.append({
+                'id': record.id,
+                'institute': record.institute.title,  # Assuming institute has a 'name' field
+                'degree': record.degree,
+                'start_year': record.start_year,
+                'end_year': record.end_year,
+                'is_currently_pursuing': record.is_currently_pursuing,
+                'location': record.location.location if record.location else None  # Assuming location has a 'name' field
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
 
 class UpdateMemberEducation(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     def get(self, request, education_id):
         try:
             education_record = Member_Education.objects.get(id=education_id)
@@ -1214,12 +1361,25 @@ class CreateMemberExperience(APIView):
 
 
 class RetrieveMemberExperience(APIView):
-    permission_classes = [IsAuthenticated] 
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, member_id):
         experience_records = Member_Experience.objects.filter(member_id=member_id)
-        serializer = MemberExperienceSerializer(experience_records, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
+        # Convert the queryset to a list of dictionaries
+        experience_list = [
+            {
+                'industry': exp.industry.industry,  # Assuming the Industry model has a name field
+                'role': exp.role.role if exp.role else None,  # Handle optional role
+                'start_date': exp.start_date,
+                'end_date': exp.end_date,
+                'is_currently_working': exp.is_currently_working,
+                'location': exp.location.location  # Assuming the Location model has a name field
+            }
+            for exp in experience_records
+        ]
+
+        return Response(experience_list, status=status.HTTP_200_OK)
 
 class UpdateMemberExperience(APIView):
     permission_classes = [IsAuthenticated]  # Uncomment if you want authentication
@@ -1244,7 +1404,6 @@ class UpdateMemberExperience(APIView):
 
 
 class DeleteMemberExperience(APIView):
-    
     permission_classes = [IsAuthenticated]  
     def delete(self, request, experience_id):
         try:
@@ -1292,6 +1451,11 @@ class UpdateAlumni(APIView):
         except Alumni.DoesNotExist:
             return Response({"message": "Alumni record not found"}, status=status.HTTP_404_NOT_FOUND)
 
+# all members with linked users only
+
+
+
+# filters
 class MemberFilterView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1350,9 +1514,22 @@ class MemberFilterView(APIView):
             return Response({"message": "No matching records found."}, status=status.HTTP_404_NOT_FOUND)
 
         # Serialize the filtered data
-        serializer = MemberListSerializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        response_data = []
+        for member in queryset:
+            member_data = {
+                'id': member.id,
+                'first_name': member.user.first_name if member.user else None,
+                'last_name': member.user.last_name if member.user else None,
+                'email': member.email,
+                'batch': member.batch.id if member.batch else None,
+                'course': member.course.id if member.course else None,
+                'profile_picture': request.build_absolute_uri(member.profile_picture.url) if member.profile_picture else None,
+            }
+            response_data.append(member_data)
 
+        return Response(response_data, status=status.HTTP_200_OK)
+
+# detail in member
 class MemberDetailView(APIView):
     def get(self, request, member_id):
         try:

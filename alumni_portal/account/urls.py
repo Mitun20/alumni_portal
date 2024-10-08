@@ -56,6 +56,7 @@ urlpatterns = [
     
     # edit Profile
     path('profile_picture/<int:member_id>/', ProfilePicture.as_view(), name='profile_picture'),
+    path('update_member/<int:member_id>/', MemberData.as_view(), name='update_member'),
 
     # member skills
     path('create_member_skill/', CreateMemberSkill.as_view(), name='create_member_skill'), 
@@ -108,5 +109,11 @@ urlpatterns = [
     # filters 
     path('filter_by/', MemberFilterView.as_view(), name='filter_by'),
     path('detail_view/<int:member_id>/', MemberDetailView.as_view(), name='detail_view'),
+
+    #Social media
+    path('create_social_media/', CreateSocialMedia.as_view(), name='create_social_media'),
+    path('retrieve_social_media/', RetrieveSocialMedia.as_view(), name='retrieve_social_media'),
+    path('update_social_media/<int:social_media_id>/', UpdateSocialMedia.as_view(), name='update_social_media'),
+    path('deactivate_social_media/<int:social_media_id>/', InactiveSocialMedia.as_view(), name='deactivate_social_media'),
     
 ]

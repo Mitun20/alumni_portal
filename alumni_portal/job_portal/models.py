@@ -32,6 +32,7 @@ class JobPost(models.Model):
 
 
 class Application(models.Model):
+    job_post = models.ForeignKey(JobPost, on_delete=models.CASCADE)
     full_name = models.CharField(max_length=255)
     email = models.EmailField(max_length=255)
     mobile_number = models.CharField(max_length=25, blank=True, null=True)

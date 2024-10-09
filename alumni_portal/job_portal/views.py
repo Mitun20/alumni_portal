@@ -7,6 +7,9 @@ from rest_framework.views import APIView
 from .models import *
 from account.models import *
 from .serializers import *
+from django.db.models import Q
+from django.core.mail import send_mail
+from django.conf import settings
 
 class CreateJobPost(APIView):
     permission_classes = [IsAuthenticated]
@@ -117,6 +120,8 @@ class UpdateJobPost(APIView):
             job_post = JobPost.objects.get(id=post_id)
         except JobPost.DoesNotExist:
             return Response({"message": "Job post not found"}, status=status.HTTP_404_NOT_FOUND)
+        # if job_post.posted_by != request.user:
+        #     return Response({"message": "You do not have permission to Edit this comment."}, status=status.HTTP_403_FORBIDDEN)
         
         industry = Industry.objects.get(id=request.data.get('industry'))
         role = Role.objects.get(id=request.data.get('role'))
@@ -318,22 +323,6 @@ class UpdateBusinessDirectory(APIView):
         business_directory.save()
         return Response({"message": "Business directory entry updated successfully"}, status=status.HTTP_200_OK)
 
-class InactivateBusinessDirectory(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def put(self, request, directory_id):
-        if directory_id is None:
-            return Response({"message": "Directory ID is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            business_directory = BusinessDirectory.objects.get(id=directory_id)
-            # Assuming you have an `is_active` field
-            business_directory.is_active = request.data.get('is_active', False)
-            business_directory.save()
-            return Response({"message": "Business directory status updated successfully"}, status=status.HTTP_200_OK)
-        except BusinessDirectory.DoesNotExist:
-            return Response({"message": "Business directory not found"}, status=status.HTTP_404_NOT_FOUND)
-
 class DetailBusinessDirectory(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -358,3 +347,259 @@ class DetailBusinessDirectory(APIView):
             return Response({"message": "Business directory not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# filter job post
+
+class JobPostFilterView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # Extract data from the JSON body
+        job_title = request.data.get('job_title', None)
+        industry_id = request.data.get('industry', None)  # Assuming you're passing the industry ID
+        location = request.data.get('location', None)
+        role_id = request.data.get('role', None)  # Assuming you're passing the role ID
+        post_type = request.data.get('post_type', None)
+
+        # Create a dictionary for the filter arguments
+        filters = Q()
+        if job_title:
+            filters &= Q(job_title__icontains=job_title)
+        if industry_id:
+            filters &= Q(industry_id=industry_id)
+        if location:
+            filters &= Q(location__icontains=location)
+        if role_id:
+            filters &= Q(role_id=role_id)
+        if post_type:
+            filters &= Q(post_type__icontains=post_type)
+
+        # Apply the filters in a single query
+        queryset = JobPost.objects.filter(filters)
+
+        # Prepare the response data without serializers
+        data = []
+        for job in queryset:
+            data.append({
+                "id": job.id,
+                "job_title": job.job_title,
+                "industry": job.industry.title,  
+                "location": job.location,
+                "role": job.role.role, 
+                "posted_on": job.posted_on,
+                "is_active": job.is_active,
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
+
+# filter Business directory
+
+
+class BusinessDirectoryFilterView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # Extract data from the JSON body
+        business_name = request.data.get('business_name', None)
+        industry_id = request.data.get('industry', None)  # Assuming you're passing the industry ID
+        location = request.data.get('location', None)
+
+        # Create a dictionary for the filter arguments
+        filters = Q()
+        if business_name:
+            filters &= Q(business_name__icontains=business_name)
+        if industry_id:
+            filters &= Q(industry_type_id=industry_id)
+        if location:
+            filters &= Q(location__icontains=location)
+
+
+        # Apply the filters in a single query
+        queryset = BusinessDirectory.objects.filter(filters)
+
+        # Prepare the response data
+        data = []
+        for business in queryset:
+            data.append({
+                "id": business.id,
+                "business_name": business.business_name,
+                "website": business.website,
+                "industry": business.industry_type.type_name,  # Assuming you want the industry name
+                "location": business.location,
+                "contact_email": business.contact_email,
+                "listed_on": business.listed_on,
+                "logo": request.build_absolute_uri(business.logo.url) if business.logo else None,
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
+
+# manage comments
+class CreateJobComment(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, job_id):
+        job = get_object_or_404(JobPost, id=job_id)
+        comment_text = request.data.get('comment')
+        
+        if not comment_text:
+            return Response({"error": "Comment text is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        comment = JobComment(
+            job=job,
+            comment_by=request.user,
+            comment=comment_text
+        )
+        comment.save()
+        return Response({"message": "Comment created successfully"}, status=status.HTTP_201_CREATED)
+
+class RetrieveJobComments(APIView):
+    def get(self, request, job_id):
+        comments = JobComment.objects.filter(job_id=job_id)
+        data = [
+            {
+                "comment_id": comment.id,
+                "comment_by": comment.comment_by.username,
+                "comment": comment.comment,
+            }
+            for comment in comments
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
+class DeleteJobComment(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, comment_id):
+        comment = get_object_or_404(JobComment, id=comment_id)
+
+        # Check if the comment was made by the requesting user
+        if comment.comment_by != request.user:
+            return Response({"message": "You do not have permission to delete this comment."}, status=status.HTTP_403_FORBIDDEN)
+
+        comment.delete()
+        return Response({"message": "Comment deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+# Applications
+
+class CreateApplication(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        job_post = JobPost.objects.get(id=request.data.get('job_post'))
+        
+        application = Application(
+            job_post=job_post,
+            full_name=request.data.get('full_name'),
+            email=request.data.get('email'),
+            mobile_number=request.data.get('mobile_number'),
+            current_industry_id=request.data.get('current_industry'),
+            current_role_id=request.data.get('current_role'),
+            total_years_of_experience=request.data.get('total_years_of_experience'),
+            notes_to_recruiter=request.data.get('notes_to_recruiter'),
+            resume=request.FILES.get('resume')
+        )
+        
+        application.save()
+        application.skills.set(request.data.getlist('skills'))  # Assuming skills is a list of IDs
+
+        # Send email to the job post's posted user
+        self.send_email_notification(job_post.posted_by.email, application)
+
+        return Response({"message": "Application submitted successfully"}, status=status.HTTP_201_CREATED)
+
+    def send_email_notification(self, recipient_email, application):
+        subject = f"New Application for {application.job_post.job_title}"
+        message = f"""
+        Hello,
+
+        You have received a new application for the job '{application.job_post.job_title}'.
+
+        Applicant Name: {application.full_name}
+        Email: {application.email}
+        Mobile Number: {application.mobile_number}
+        Current Role: {application.current_role.role}
+        Total Years of Experience: {application.total_years_of_experience}
+        Notes to Recruiter: {application.notes_to_recruiter}
+
+        Best regards,
+        Your Job Portal
+        """
+
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,  # Ensure you have DEFAULT_FROM_EMAIL set in your settings
+            [recipient_email],
+            fail_silently=False,
+        )
+
+# class RetrieveApplication(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+        
+#         applications = Application.objects.all()
+        
+#         applications_data = []
+#         for application in applications:
+#             applications_data.append({
+#                 'id': application.id,
+#                 'full_name': application.full_name,
+#                 'email': application.email,
+#                 # 'mobile_number': application.mobile_number,
+#                 # 'current_industry': application.current_industry.title,  # Adjust based on your Industry model
+#                 'current_role': application.current_role.title,  # Adjust based on your Role model
+#                 'total_years_of_experience': application.total_years_of_experience,
+#                 # 'skills': [skill.skill for skill in application.skills.all()],  # List of skill names
+#                 # 'applied_on': application.applied_on,
+#                 'resume': request.build_absolute_uri(application.resume.url) if application.resume else None,
+#                 # 'notes_to_recruiter': application.notes_to_recruiter,
+#             })
+
+#         return Response(applications_data, status=status.HTTP_200_OK)
+
+class MyJobApplication(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Get the job posts created by the authenticated user
+        user_job_posts = JobPost.objects.filter(posted_by=request.user)
+
+        # Get applications for those job posts
+        applications = Application.objects.filter(job_post__in=user_job_posts)
+
+        applications_data = []
+        for application in applications:
+            applications_data.append({
+                'id': application.id,
+                'full_name': application.full_name,
+                'email': application.email,
+                'current_role': application.current_role.role,  # Adjust based on your Role model
+                'total_years_of_experience': application.total_years_of_experience,
+                'resume': request.build_absolute_uri(application.resume.url) if application.resume else None,
+            })
+
+        return Response(applications_data, status=status.HTTP_200_OK)
+
+class DetailViewApplication(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request,application_id):
+        
+        application = Application.objects.get(id=application_id)
+
+        
+        applications_data={
+                'id': application.id,
+                'full_name': application.full_name,
+                'email': application.email,
+                'mobile_number': application.mobile_number,
+                'current_industry': application.current_industry.title,  # Adjust based on your Industry model
+                'current_role': application.current_role.role,  # Adjust based on your Role model
+                'total_years_of_experience': application.total_years_of_experience,
+                'skills': [skill.skill for skill in application.skills.all()],  # List of skill names
+                'applied_on': application.applied_on,
+                'resume': request.build_absolute_uri(application.resume.url) if application.resume else None,
+                'notes_to_recruiter': application.notes_to_recruiter,
+        }
+
+        return Response(applications_data, status=status.HTTP_200_OK)

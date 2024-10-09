@@ -35,32 +35,3 @@ class JobPostSerializer(serializers.ModelSerializer):
 
         return representation
 
-class BusinessDirectorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = BusinessDirectory
-        fields = [
-            'id',
-            'business_name',
-            'description',
-            'website',
-            'industry_type',
-            'location',
-            'contact_email',
-            'contact_number',
-            'country_code',
-            'are_you_part_of_management',
-            'logo',
-            'listed_on',
-            'listed_by',
-        ]
-
-    def to_representation(self, instance):
-        # Call the parent class to get the original representation
-        representation = super().to_representation(instance)
-
-        # Replace 'logo' with its absolute URL if it exists
-        if instance.logo:
-            request = self.context.get('request')
-            representation['logo'] = request.build_absolute_uri(instance.logo.url)
-
-        return representation

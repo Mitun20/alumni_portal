@@ -1248,6 +1248,7 @@ class RetrieveMemberSkills(APIView):
         data = [
             {
                 "skill_id": member_skill.skill.id,
+                "member_skill_id": member_skill.id,
                 "skill_name":member_skill.skill.skill
             }
             for member_skill in member_skills

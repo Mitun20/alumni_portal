@@ -1370,12 +1370,13 @@ class RetrieveMemberExperience(APIView):
         # Convert the queryset to a list of dictionaries
         experience_list = [
             {
-                'industry': exp.industry.industry,  # Assuming the Industry model has a name field
-                'role': exp.role.role if exp.role else None,  # Handle optional role
+                'id': exp.id,
+                'industry': exp.industry.title,  
+                'role': exp.role.role if exp.role else None,  
                 'start_date': exp.start_date,
                 'end_date': exp.end_date,
                 'is_currently_working': exp.is_currently_working,
-                'location': exp.location.location  # Assuming the Location model has a name field
+                'location': exp.location.location  
             }
             for exp in experience_records
         ]

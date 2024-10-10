@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import *
 from account.models import Member
+from django.db.models import Q
 
 class CreateTicket(APIView):
     permission_classes = [IsAuthenticated]
@@ -16,7 +17,7 @@ class CreateTicket(APIView):
         alumni = Alumni.objects.get(member=member)
 
         category = TicketCategory.objects.get(id=request.data.get('category'))  # Assuming category ID is provided
-        status = TicketStatus.objects.get(id=request.data.get('status'))  # Assuming status ID is provided
+        status = TicketStatus.objects.get(status='Submitted')  # Assuming status ID is provided
         
         ticket = Ticket(
             alumni=alumni,
@@ -110,6 +111,7 @@ class TicketAssignTo(APIView):
         try:
             ticket = Ticket.objects.get(id=ticket_id)
             assigned_to = User.objects.get(id=assigned_to_id)
+            ticket.assign_to = assigned_to
         except (Ticket.DoesNotExist, User.DoesNotExist):
             return Response({"error": "Invalid ticket or user ID"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -119,7 +121,7 @@ class TicketAssignTo(APIView):
             assigned_to=assigned_to,
 
         )
-        
+        ticket.status = TicketStatus.objects.get(status='Assigned')
         ticket_assignment.save()
         return Response({"message": "Ticket assigned successfully"}, status=status.HTTP_201_CREATED)
 
@@ -221,4 +223,43 @@ class TicketClose(APIView):
         
         return Response({"message": "Ticket closed successfully"}, status=status.HTTP_200_OK)
 
+class TicketFilterView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def post(self, request, *args, **kwargs):
+        # Extract data from the JSON body
+        status_id = request.data.get('status', None)  # Assuming you're passing the status ID
+        category_id = request.data.get('category', None)  # Assuming you're passing the category ID
+        priority = request.data.get('priority', None)
+        due_date = request.data.get('due_date', None)  # Format as needed
+
+        # Create a dictionary for the filter arguments
+        filters = Q()
+        if status_id:
+            filters &= Q(status_id=status_id)
+        if category_id:
+            filters &= Q(category_id=category_id)
+        if priority:
+            filters &= Q(priority=priority)
+        if due_date:
+            filters &= Q(due_date=due_date)
+
+        # Apply the filters in a single query
+        queryset = Ticket.objects.filter(filters)
+
+        # Prepare the response data
+        data = []
+        for ticket in queryset:
+            data.append({
+                "id": ticket.id,
+                "alumni": ticket.alumni.name,  # Adjust as necessary for the alumni's name
+                "category": ticket.category.category,
+                "status": ticket.status.status,
+                "priority": ticket.priority,
+                "due_date": ticket.due_date,
+                "content": ticket.content,
+                "assigned_to": ticket.assign_to.username if ticket.assign_to else None,
+                "last_status_on": ticket.last_status_on,
+            })
+
+        return Response(data, status=status.HTTP_200_OK)

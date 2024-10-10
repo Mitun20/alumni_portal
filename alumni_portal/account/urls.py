@@ -116,4 +116,5 @@ urlpatterns = [
     path('update_social_media/<int:social_media_id>/', UpdateSocialMedia.as_view(), name='update_social_media'),
     path('deactivate_social_media/<int:social_media_id>/', InactiveSocialMedia.as_view(), name='deactivate_social_media'),
     
+    path('profile_status/<int:member_id>/', ProfileCompletionStatus.as_view(), name='profile_status'),
 ]

@@ -1452,8 +1452,50 @@ class UpdateAlumni(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Alumni.DoesNotExist:
             return Response({"message": "Alumni record not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+from rest_framework import status
 
-# all members with linked users only
+# profile status
+class ProfileCompletionStatus(APIView):
+    
+    def get(self, request, member_id):
+        try:
+            member = Member.objects.get(id=member_id)
+        except Member.DoesNotExist:
+            return Response({'error': 'Member not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Basic Profile Completion
+        basic_fields = [member.salutation, member.gender, member.dob, member.email, member.mobile_no]
+        basic_complete = all(basic_fields)
+
+        # Skills Completion
+        skills_complete = Member_Skills.objects.filter(member=member).exists()
+
+        # Education Completion
+        education_complete = Member_Education.objects.filter(member=member).exists()
+
+        # Experience Completion
+        experience_complete = Member_Experience.objects.filter(member=member).exists()
+
+        # Alumni Completion (for alumni only)
+        alumni_complete = True
+        if Alumni.objects.filter(member=member).exists():
+            alumni = Alumni.objects.get(member=member)
+            alumni_complete = all([alumni.address, alumni.postal_code])
+
+        # Calculate overall completion status
+        completed_sections = sum([basic_complete, skills_complete, education_complete, experience_complete, alumni_complete])
+        total_sections = 5  # Adjust based on the sections you are checking
+        completion_percentage = (completed_sections / total_sections) * 100
+
+        status = "Incomplete"
+        if completion_percentage == 100:
+            status = "Complete"
+        elif completion_percentage >= 50:
+            status = "Partially Complete"
+
+        return Response({'completion_percentage': completion_percentage})
+
 
 
 

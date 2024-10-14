@@ -21,6 +21,7 @@ import string
 from django.core.mail import send_mail
 from .permissions import *
 from django.db.models import Q
+from rest_framework import status
 
 
 class Login(APIView):
@@ -40,13 +41,14 @@ class Login(APIView):
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
-            
+            group_names = user.groups.values_list('name', flat=True)
             return Response({
                 'refresh': refresh_token,
                 'access': access_token,
                 'username': username,
                 "user_id":user.id,
-                'member_id':member.id if member else None
+                'member_id':member.id if member else None,
+                'groups': list(group_names)
             }, status=status.HTTP_200_OK)
         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
     
@@ -98,35 +100,72 @@ class ChangePassword(APIView):
         
 # Assign Role
 class Users(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     def get(self, request):
         users = User.objects.all()
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
 
 class Groups(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         groups = Group.objects.all()
         serializer = GroupSerializer(groups, many=True)
         return Response(serializer.data)
 
 class Assign_Group(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        user_id = request.data.get('user_id')
-        group_id = request.data.get('group_id')
+        user_id = request.data.get('id')
+        group_ids = request.data.get('group_ids')  # Expecting a list of group IDs
+
+        if not group_ids:
+            return Response({'error': 'group_ids is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # If group_ids is a single value, convert it to a list
+        # if isinstance(group_ids, int):
+        #     group_ids = [group_ids]
+        # elif not isinstance(group_ids, list):
+        #     return Response({'error': 'group_ids must be a list or an integer.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user = User.objects.get(id=user_id)
-            group = Group.objects.get(id=group_id)
-            group.user_set.add(user)  # Add the user to the group
-            return Response({'message': 'User added to group successfully.'}, status=status.HTTP_201_CREATED)
         except User.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
-        except Group.DoesNotExist:
-            return Response({'error': 'Group not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Get all groups currently assigned to the user
+        current_groups = set(user.groups.values_list('id', flat=True))
+        new_groups = set(group_ids)
+
+        # Determine groups to remove
+        groups_to_remove = current_groups - new_groups
+        # Determine groups to add
+        groups_to_add = new_groups - current_groups
+
+        # Remove user from groups no longer assigned
+        for group_id in groups_to_remove:
+            try:
+                group = Group.objects.get(id=group_id)
+                group.user_set.remove(user)
+            except Group.DoesNotExist:
+                continue  # If the group doesn't exist, skip
+
+        # Add user to new groups
+        for group_id in groups_to_add:
+            try:
+                group = Group.objects.get(id=group_id)
+                group.user_set.add(user)
+            except Group.DoesNotExist:
+                continue  
+
+        response_message = {
+            'message': 'User groups updated successfully.',
+
+        }
+
+        return Response(response_message, status=status.HTTP_200_OK)
+    
 # Deactivate user
 
 class DeactivateUser(APIView):
@@ -1453,7 +1492,6 @@ class UpdateAlumni(APIView):
         except Alumni.DoesNotExist:
             return Response({"message": "Alumni record not found"}, status=status.HTTP_404_NOT_FOUND)
         
-from rest_framework import status
 
 # profile status
 class ProfileCompletionStatus(APIView):
@@ -1496,8 +1534,38 @@ class ProfileCompletionStatus(APIView):
 
         return Response({'completion_percentage': completion_percentage})
 
+# list all members
 
+class MemberListView(APIView):
+    # permission_classes = [IsAuthenticated]
 
+    def get(self, request):
+        members = Member.objects.exclude(user__isnull=True)
+        response_data = []
+        for member in members:
+            alumni_data = None
+            if member.alumni.exists():
+                alumni = member.alumni.first()
+                alumni_data = {
+                    'website': alumni.website,
+                    'linked_in': alumni.linked_in,
+                    'twitter_handle': alumni.twitter_handle,
+                }
+
+            member_data = {
+                'id': member.id,
+                'first_name': member.user.first_name if member.user else None,
+                'last_name': member.user.last_name if member.user else None,
+                'email': member.email,
+                'batch': member.batch.title if member.batch else None,
+                'course': member.course.title if member.course else None,
+                'profile_picture': request.build_absolute_uri(member.profile_picture.url) if member.profile_picture else None,
+                'alumni': alumni_data,
+            }
+            response_data.append(member_data)
+
+        return Response(response_data, status=status.HTTP_200_OK)
+        
 
 # filters
 class MemberFilterView(APIView):
@@ -1560,16 +1628,27 @@ class MemberFilterView(APIView):
         # Serialize the filtered data
         response_data = []
         for member in queryset:
+            alumni_data = None
+            if member.alumni.exists():
+                alumni = member.alumni.first()
+                alumni_data = {
+                    'website': alumni.website,
+                    'linked_in': alumni.linked_in,
+                    'twitter_handle': alumni.twitter_handle,
+                }
+
             member_data = {
                 'id': member.id,
                 'first_name': member.user.first_name if member.user else None,
                 'last_name': member.user.last_name if member.user else None,
                 'email': member.email,
-                'batch': member.batch.id if member.batch else None,
-                'course': member.course.id if member.course else None,
+                'batch': member.batch.title if member.batch else None,
+                'course': member.course.title if member.course else None,
                 'profile_picture': request.build_absolute_uri(member.profile_picture.url) if member.profile_picture else None,
+                'alumni': alumni_data,
             }
             response_data.append(member_data)
+
 
         return Response(response_data, status=status.HTTP_200_OK)
 
@@ -1581,5 +1660,56 @@ class MemberDetailView(APIView):
         except Member.DoesNotExist:
             return Response({'error': 'Member not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = MemberDetailSerializer(member)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # Manually construct the response data
+        member_data = {
+            'first_name': member.user.first_name,
+            'last_name': member.user.last_name,
+            'email': member.email,
+            'gender': member.gender,
+            'dob': member.dob,
+            'blood_group': member.blood_group,
+            'mobile_no': member.mobile_no,
+            'profile_picture': request.build_absolute_uri(member.profile_picture.url) if member.profile_picture else None,
+            'about_me': member.about_me,
+            'salutation': member.salutation.salutation,  # Assuming 'title' is the field in Salutation
+            'batch': member.batch.title if member.batch else None,  # Adjust field as necessary
+            'course': member.course.title if member.course else None,  # Adjust field as necessary
+            # 'location': member.location.location if member.location else None,  # Adjust field as necessary
+            'skills':[skill.skill.skill for skill in member.skills.all()],  # Adjust if related name changes
+            'education': [
+                {
+                    'institute': edu.institute.title,  # Adjust field as necessary
+                    'degree': edu.degree,
+                    'start_year': edu.start_year,
+                    'end_year': edu.end_year,
+                    'is_currently_pursuing': edu.is_currently_pursuing,
+                    'location': edu.location.location if edu.location else None  # Adjust field as necessary
+                }
+                for edu in member.education.all()
+            ],
+            'experiences': [
+                {
+                    'industry': exp.industry.title,  # Adjust field as necessary
+                    'role': exp.role.role if exp.role else None,  # Adjust field as necessary
+                    'start_date': exp.start_date,
+                    'end_date': exp.end_date,
+                    'is_currently_working': exp.is_currently_working,
+                    'location': exp.location.location  # Adjust field as necessary
+                }
+                for exp in member.experience.all()
+            ],
+            'alumni': (
+                {
+                    'website': member.alumni.first().website,
+                    'linked_in': member.alumni.first().linked_in,
+                    'twitter_handle': member.alumni.first().twitter_handle,
+                    'address': member.alumni.first().address,
+                    'postal_code': member.alumni.first().postal_code,
+                    'registered_on': member.alumni.first().registered_on,
+                    'location':member.alumni.first().location.location
+                }
+                if member.alumni else None  # Check if alumni exists
+            )
+        }
+
+        return Response(member_data, status=status.HTTP_200_OK)

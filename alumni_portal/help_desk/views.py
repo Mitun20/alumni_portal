@@ -26,7 +26,6 @@ class CreateTicket(APIView):
             priority=request.data.get('priority'),
             due_date=request.data.get('due_date'),
             content=request.data.get('content'),
-            assign_to=request.data.get('assign_to'),  # Assuming this is a user ID
         )
         
         ticket.save()

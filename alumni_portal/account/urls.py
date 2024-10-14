@@ -101,7 +101,7 @@ urlpatterns = [
     path('retrieve_countries/', RetrieveCountry.as_view(), name='retrieve_countries'),
     path('update_country/<int:country_id>/', UpdateCountry.as_view(), name='update_country'),
 
-    # Alumni contacts
+    # Member Alumni contacts
     path('create_alumni/', CreateAlumni.as_view(), name='create_alumni'),
     path('retrieve_alumni/<int:member_id>/', RetrieveAlumni.as_view(), name='retrieve_alumni'),
     path('update_alumni/<int:member_id>/', UpdateAlumni.as_view(), name='update_alumni'),
@@ -116,5 +116,10 @@ urlpatterns = [
     path('update_social_media/<int:social_media_id>/', UpdateSocialMedia.as_view(), name='update_social_media'),
     path('deactivate_social_media/<int:social_media_id>/', InactiveSocialMedia.as_view(), name='deactivate_social_media'),
     
+    # Profile status
     path('profile_status/<int:member_id>/', ProfileCompletionStatus.as_view(), name='profile_status'),
+    
+    # List Memberas
+    path('all_members/', MemberListView.as_view(), name='all_members'),
+    
 ]

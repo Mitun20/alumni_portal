@@ -132,14 +132,14 @@ class Member(models.Model):
         return self.email
 
 class Member_Skills(models.Model):
-    member = models.ForeignKey(Member, on_delete=models.CASCADE)
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='skills')
     skill = models.ForeignKey(Skill, on_delete=models.CASCADE)
 
     def __str__(self):
         return f'{self.member} - {self.skill}'
 
 class Member_Education(models.Model):
-    member = models.ForeignKey(Member, on_delete=models.CASCADE)
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='education')
     institute = models.ForeignKey(Institution, on_delete=models.CASCADE)
     degree = models.CharField(max_length=255)
     start_year = models.IntegerField()
@@ -151,7 +151,7 @@ class Member_Education(models.Model):
         return f'{self.member} - {self.degree}'
 
 class Member_Experience(models.Model):
-    member = models.ForeignKey(Member, on_delete=models.CASCADE, null=False)
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='experience', null=False)
     industry = models.ForeignKey(Industry, on_delete=models.CASCADE, null=False)
     role = models.ForeignKey(Role, on_delete=models.CASCADE, null=True, blank=True)
     start_date = models.DateField()
@@ -163,7 +163,7 @@ class Member_Experience(models.Model):
         return f'{self.member} - {self.industry}'
 
 class Alumni(models.Model):
-    member = models.ForeignKey(Member, on_delete=models.CASCADE)
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='alumni')
     website = models.URLField(blank=True)
     linked_in = models.URLField(blank=True)
     twitter_handle = models.CharField(max_length=225, blank=True)

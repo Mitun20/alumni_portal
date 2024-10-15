@@ -30,7 +30,7 @@ class Ticket(models.Model):
     content = models.TextField()
 
     def __str__(self):
-        return f"Ticket #{self.id} - {self.alumni.name}"
+        return f"Ticket #{self.id} - {self.alumni.member.user.username}"
 
 class TicketReply(models.Model):
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE)
@@ -44,7 +44,7 @@ class TicketReply(models.Model):
 class TicketAssignment(models.Model):
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE)
     assigned_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='assigned_tickets')
-    message = models.TextField()
+    message = models.TextField(blank=True, null=True)
     response = models.TextField(blank=True, null=True)
     assigned_on = models.DateField(auto_now_add=True)
     respond_on = models.DateField(null=True, blank=True)

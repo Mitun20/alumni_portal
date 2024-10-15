@@ -1579,7 +1579,6 @@ class MemberFilterView(APIView):
         department = request.data.get('department', None)
         industry = request.data.get('industry', None)
         skill = request.data.get('skill', None)
-        country = request.data.get('country', None)
         institution = request.data.get('institution', None)
         location = request.data.get('location', None)
         first_name = request.data.get('first_name', None)

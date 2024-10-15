@@ -6,23 +6,39 @@ from rest_framework import status
 from .models import *
 from account.models import Member
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 
+
+class TicketStatusList(APIView):
+    def get(self, request):
+        statuses = TicketStatus.objects.all()
+        status_list = [{"id": status.id, "status": status.status} for status in statuses]
+        return Response(status_list, status=status.HTTP_200_OK)
+
+class TicketCategoryList(APIView):
+    def get(self, request):
+        categories = TicketCategory.objects.all()
+        category_list = [{"id": category.id, "category": category.category} for category in categories]
+        return Response(category_list, status=status.HTTP_200_OK)
+    
 class CreateTicket(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         # Get the Member object associated with the authenticated user
         member = Member.objects.get(user=request.user)
+        
         # Get the Alumni object associated with the Member
         alumni = Alumni.objects.get(member=member)
 
-        category = TicketCategory.objects.get(id=request.data.get('category'))  # Assuming category ID is provided
-        status = TicketStatus.objects.get(status='Submitted')  # Assuming status ID is provided
+        category = TicketCategory.objects.get(id=request.data.get('category'))
+        ticket_status = get_object_or_404(TicketStatus, status='Submitted')
+
         
         ticket = Ticket(
             alumni=alumni,
             category=category,
-            status=status,
+            status=ticket_status,
             priority=request.data.get('priority'),
             due_date=request.data.get('due_date'),
             content=request.data.get('content'),
@@ -32,7 +48,7 @@ class CreateTicket(APIView):
         return Response({"message": "Ticket created successfully"}, status=status.HTTP_201_CREATED)
 
 class MyTicket(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         # Get the Member object associated with the authenticated user
@@ -48,19 +64,18 @@ class MyTicket(APIView):
         for ticket in tickets:
             tickets_data.append({
                 'id': ticket.id,
-                'category': ticket.category.name,  # Adjust based on your TicketCategory model
-                'status': ticket.status.name,  # Adjust based on your TicketStatus model
+                'category': ticket.category.category,  # Adjust based on your TicketCategory model
+                'status': ticket.status.status,  # Adjust based on your TicketStatus model
                 'priority': ticket.priority,
                 'due_date': ticket.due_date,
                 'last_status_on': ticket.last_status_on,
                 'content': ticket.content,
-                'assign_to': ticket.assign_to.username if ticket.assign_to else None,  # Assuming User has a username field
             })
 
         return Response(tickets_data, status=status.HTTP_200_OK)
 
 class RetrieveTicket(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         tickets = Ticket.objects.all()
@@ -71,20 +86,19 @@ class RetrieveTicket(APIView):
             tickets_data.append({
                 'id': ticket.id,
                 'alumni': ticket.alumni.member.email,  # Adjust based on your Alumni model
-                'category': ticket.category.name,  # Adjust based on your TicketCategory model
-                'status': ticket.status.name,  # Adjust based on your TicketStatus model
+                'category': ticket.category.category,  # Adjust based on your TicketCategory model
+                'status': ticket.status.status,  # Adjust based on your TicketStatus model
                 'priority': ticket.priority,
                 'due_date': ticket.due_date,
                 'last_status_on': ticket.last_status_on,
                 'content': ticket.content,
-                'assign_to': ticket.assign_to.username if ticket.assign_to else None,  # Assuming User has a username field
             })
 
         return Response(tickets_data, status=status.HTTP_200_OK)
     
 # get all user has faculty group
 class FacultyUsers(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         # Get the 'Faculty' group
@@ -94,23 +108,22 @@ class FacultyUsers(APIView):
             # Retrieve users belonging to the 'Faculty' group
             users = User.objects.filter(groups=faculty_group)
             # Create a list of user data dictionaries
-            user_data = [{'id': user.id, 'username': user.username, 'email': user.email} for user in users]
+            user_data = [{'id': user.id, 'username': user.username} for user in users]
             return Response(user_data)
         else:
             return Response({'detail': 'Group not found.'}, status=404)
         
 class TicketAssignTo(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def post(self, request,ticket_id):
         
         assigned_to_id = request.data.get('assigned_to')  # Get the assigned user ID from the request
-        
+        message = request.data.get('message')
         # Fetch the ticket and assigned user
         try:
             ticket = Ticket.objects.get(id=ticket_id)
             assigned_to = User.objects.get(id=assigned_to_id)
-            ticket.assign_to = assigned_to
         except (Ticket.DoesNotExist, User.DoesNotExist):
             return Response({"error": "Invalid ticket or user ID"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -118,6 +131,7 @@ class TicketAssignTo(APIView):
         ticket_assignment = TicketAssignment(
             ticket=ticket,
             assigned_to=assigned_to,
+            message=message
 
         )
         ticket.status = TicketStatus.objects.get(status='Assigned')
@@ -126,7 +140,7 @@ class TicketAssignTo(APIView):
 
 
 class MyTicketAssignment(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         # Get the assigned ticket assignments for the authenticated user
@@ -146,7 +160,7 @@ class MyTicketAssignment(APIView):
         return Response(assignments_data, status=status.HTTP_200_OK)
 
 class ResponceTicketAssignment(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def post(self, request, assignment_id):
         try:
@@ -166,7 +180,7 @@ class ResponceTicketAssignment(APIView):
             return Response({"error": "Ticket assignment not found"}, status=status.HTTP_404_NOT_FOUND)
         
 class TicketStatusUpdate(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     
     def post(self, request, ticket_id):
         # Get the ticket and status
@@ -184,8 +198,7 @@ class TicketStatusUpdate(APIView):
         return Response({"message": "Ticket status updated successfully"}, status=status.HTTP_200_OK)
 
 class TicketReply(APIView):
-    
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     
     def post(self, request, ticket_id):
         # Get the ticket comment and reply text
@@ -206,7 +219,7 @@ class TicketReply(APIView):
         return Response({"message": "Ticket reply created successfully"}, status=status.HTTP_201_CREATED)
 
 class TicketClose(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     
     
     def post(self, request, ticket_id):
@@ -223,7 +236,7 @@ class TicketClose(APIView):
         return Response({"message": "Ticket closed successfully"}, status=status.HTTP_200_OK)
 
 class TicketFilterView(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         # Extract data from the JSON body

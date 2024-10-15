@@ -26,7 +26,6 @@ from rest_framework import status
 
 class Login(APIView):
     def post(self, request):
-        
         username = request.data.get('username')
         password = request.data.get('password')
         user = authenticate(username=username, password=password)
@@ -42,14 +41,19 @@ class Login(APIView):
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
             group_names = user.groups.values_list('name', flat=True)
+
+            # Create a dictionary with group names as keys and True as values
+            group_dict = {group_name: True for group_name in group_names}
+
             return Response({
                 'refresh': refresh_token,
                 'access': access_token,
                 'username': username,
-                "user_id":user.id,
-                'member_id':member.id if member else None,
-                'groups': list(group_names)
+                'user_id': user.id,
+                'member_id': member.id if member else None,
+                'groups': group_dict  # Updated to use the group dictionary
             }, status=status.HTTP_200_OK)
+
         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
     
 class ForgetPassword(APIView):
@@ -100,12 +104,12 @@ class ChangePassword(APIView):
         
 # Assign Role
 class Users(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         users = User.objects.all()
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
-
+ 
 class Groups(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
@@ -895,7 +899,7 @@ class ShowMemberData(APIView):
 
 # Bulk Register by manager 
 class BulkRegisterUsers(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     def post(self, request):
         group_name = request.data.get('group_name')
         if not group_name:
@@ -1003,10 +1007,15 @@ class BulkRegisterUsers(APIView):
         else:
             message = "Members have been created without user accounts, and notification emails have been sent."
 
-        return Response({
-            'message': message,
+        if errors:
+             return Response({
             'errors': errors,
-        }, status=status.HTTP_201_CREATED if not errors else status.HTTP_207_MULTI_STATUS)
+            }, status=status.HTTP_207_MULTI_STATUS)
+        else:
+            return Response({
+                'message': message,
+                
+            }, status=status.HTTP_201_CREATED)
 
 # Single register by manager
 class SingleRegisterUser(APIView):
@@ -1026,7 +1035,7 @@ class SingleRegisterUser(APIView):
         course_id = request.data.get('course_id')
         batch_id = request.data.get('batch_id')
         profile_picture = request.data.get('profile_picture', None)
-        print("ok 1")
+        # print("ok 1")
         # Validate required fields
         if not email:
             return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1535,7 +1544,6 @@ class ProfileCompletionStatus(APIView):
         return Response({'completion_percentage': completion_percentage})
 
 # list all members
-
 class MemberListView(APIView):
     # permission_classes = [IsAuthenticated]
 
@@ -1551,11 +1559,10 @@ class MemberListView(APIView):
                     'linked_in': alumni.linked_in,
                     'twitter_handle': alumni.twitter_handle,
                 }
-
+            full_name = f"{member.user.first_name} {member.user.last_name}" if member.user else None
             member_data = {
                 'id': member.id,
-                'first_name': member.user.first_name if member.user else None,
-                'last_name': member.user.last_name if member.user else None,
+                'name': full_name,
                 'email': member.email,
                 'batch': member.batch.title if member.batch else None,
                 'course': member.course.title if member.course else None,
@@ -1569,8 +1576,6 @@ class MemberListView(APIView):
 
 # filters
 class MemberFilterView(APIView):
-    permission_classes = [IsAuthenticated]
-
     def post(self, request, *args, **kwargs):
         # Extract data from the JSON body
         batch = request.data.get('batch', None)
@@ -1591,21 +1596,20 @@ class MemberFilterView(APIView):
         if batch:
             filters &= Q(batch__id=batch)
         if role:
-            filters &= Q(member_experience__role__id=role)
+            filters &= Q(experience__role__id=role)  # Corrected from member_experience to experience
         if course:
             filters &= Q(course__id=course)
         if department:
             filters &= Q(course__department__id=department)
         if industry:
-            filters &= Q(member_experience__industry__id=industry)
+            filters &= Q(experience__industry__id=industry)  # Corrected from member_experience to experience
         if skill:
-            filters &= Q(member_skills__skill__id=skill)
-          # Assuming location model has a country field
+            filters &= Q(skills__skill__id=skill)  # Corrected from member_skills to skills
         if institution:
-            filters &= Q(member_education__institute__id=institution)
+            filters &= Q(education__institute__id=institution)  # Corrected from member_education to education
         if location:
-            filters &= Q(member_experience__location__id=location) | Q(member_education__location__id=location)
-        
+            filters &= Q(experience__location__id=location) | Q(education__location__id=location)  # Corrected from member_experience and member_education to experience and education
+
         # Additional filters for personal details
         if first_name:
             filters &= Q(user__first_name__icontains=first_name)
@@ -1635,11 +1639,10 @@ class MemberFilterView(APIView):
                     'linked_in': alumni.linked_in,
                     'twitter_handle': alumni.twitter_handle,
                 }
-
+            full_name = f"{member.user.first_name} {member.user.last_name}" if member.user else None
             member_data = {
                 'id': member.id,
-                'first_name': member.user.first_name if member.user else None,
-                'last_name': member.user.last_name if member.user else None,
+                'name': full_name,
                 'email': member.email,
                 'batch': member.batch.title if member.batch else None,
                 'course': member.course.title if member.course else None,
@@ -1648,8 +1651,8 @@ class MemberFilterView(APIView):
             }
             response_data.append(member_data)
 
-
         return Response(response_data, status=status.HTTP_200_OK)
+
 
 # detail in member
 class MemberDetailView(APIView):
@@ -1658,11 +1661,10 @@ class MemberDetailView(APIView):
             member = Member.objects.get(id=member_id)
         except Member.DoesNotExist:
             return Response({'error': 'Member not found'}, status=status.HTTP_404_NOT_FOUND)
-
+        full_name = f"{member.user.first_name} {member.user.last_name}" if member.user else None
         # Manually construct the response data
         member_data = {
-            'first_name': member.user.first_name,
-            'last_name': member.user.last_name,
+            'name': full_name,
             'email': member.email,
             'gender': member.gender,
             'dob': member.dob,

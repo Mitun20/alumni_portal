@@ -7,12 +7,12 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username','groups']  # Add any other fields you need
+        fields = ['id', 'username','is_active','groups']  # Add any other fields you need
 
     def get_groups(self, obj):
         return [{"id": group.id, "name": group.name} for group in obj.groups.all()]
 
-        
+         
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group

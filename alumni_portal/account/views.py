@@ -104,21 +104,21 @@ class ChangePassword(APIView):
         
 # Assign Role
 class Users(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
     def get(self, request):
         users = User.objects.all()
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
- 
+
 class Groups(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
     def get(self, request):
         groups = Group.objects.all()
         serializer = GroupSerializer(groups, many=True)
         return Response(serializer.data)
 
 class Assign_Group(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def post(self, request):
         user_id = request.data.get('id')
@@ -173,7 +173,7 @@ class Assign_Group(APIView):
 # Deactivate user
 
 class DeactivateUser(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def post(self, request, user_id):
         try:
@@ -187,8 +187,6 @@ class DeactivateUser(APIView):
 
 # active data for dropdown
 class ActiveDepartment(APIView):
-    permission_classes = [IsAuthenticated]
-
     def get(self, request):
         departments = Department.objects.filter(is_active=True)
         data = [
@@ -203,8 +201,6 @@ class ActiveDepartment(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class ActiveCourse(APIView):
-    permission_classes = [IsAuthenticated]
-
     def get(self, request):
         courses = Course.objects.filter(is_active=True)
         data = [
@@ -222,7 +218,7 @@ class ActiveCourse(APIView):
 
 # Manage Salutation
 class CreateSalutation(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
     def post(self, request):
         salutation = Salutation(
             salutation= request.data['salutation'],
@@ -233,7 +229,6 @@ class CreateSalutation(APIView):
         return Response({"message": "Salutation created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveSalutation(APIView):
-    permission_classes = [IsAuthenticated]
     def get(self, request):
         salutations = Salutation.objects.all()
         data = [
@@ -247,7 +242,7 @@ class RetrieveSalutation(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateSalutation(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
     def get(self, request, salutation_id):
         try:
             salutation = Salutation.objects.get(id=salutation_id)
@@ -274,7 +269,7 @@ class UpdateSalutation(APIView):
 
 # manage Batch
 class CreateBatch(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def post(self, request):
         batch = Batch(
@@ -286,8 +281,6 @@ class CreateBatch(APIView):
         return Response({"message": "Batch created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveBatch(APIView):
-    permission_classes = [IsAuthenticated]
-
     def get(self, request):
         batches = Batch.objects.all()
         data = [
@@ -302,7 +295,7 @@ class RetrieveBatch(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateBatch(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def get(self, request, batch_id):
         try:
@@ -330,7 +323,7 @@ class UpdateBatch(APIView):
 
 # manage Department
 class CreateDepartment(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def post(self, request):
         department = Department(
@@ -342,7 +335,7 @@ class CreateDepartment(APIView):
         return Response({"message": "Department created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveDepartment(APIView):
-    # permission_classes = [IsAuthenticated,IsAlumniManager]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def get(self, request):
         departments = Department.objects.all()
@@ -358,7 +351,7 @@ class RetrieveDepartment(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateDepartment(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def get(self, request, department_id):
         try:
@@ -385,7 +378,7 @@ class UpdateDepartment(APIView):
         return Response({"message": "Department updated successfully"}, status=status.HTTP_200_OK)
 
 class InactiveDepartment(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
     def put(self, request, department_id):
         
         if department_id is None:
@@ -403,7 +396,7 @@ class InactiveDepartment(APIView):
 
 # manage course
 class CreateCourse(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def post(self, request):
         course = Course(
@@ -416,8 +409,6 @@ class CreateCourse(APIView):
         return Response({"message": "Course created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveCourse(APIView):
-    # permission_classes = [IsAuthenticated]
-
     def get(self, request):
         courses = Course.objects.all()
         data = [
@@ -434,7 +425,7 @@ class RetrieveCourse(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateCourse(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     # def get(self, request, course_id):
     #     try:
@@ -463,7 +454,7 @@ class UpdateCourse(APIView):
         return Response({"message": "Course updated successfully"}, status=status.HTTP_200_OK)
 
 class InactiveCourse(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
     def put(self, request, course_id):
         
         if course_id is None:
@@ -481,7 +472,7 @@ class InactiveCourse(APIView):
 
 # manage Institution Views
 class CreateInstitution(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def post(self, request):
         institution = Institution(
@@ -492,15 +483,13 @@ class CreateInstitution(APIView):
         return Response({"message": "Institution created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveInstitution(APIView):
-    # permission_classes = [IsAuthenticated]
-
     def get(self, request):
         institutions = Institution.objects.all()
         data = [{"id": inst.id, "title": inst.title, "description": inst.description} for inst in institutions]
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateInstitution(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def get(self, request, institution_id):
         try:
@@ -528,7 +517,7 @@ class UpdateInstitution(APIView):
 # manage social media
 
 class CreateSocialMedia(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def post(self, request):
         social_media = Social_Media(
@@ -557,7 +546,7 @@ class RetrieveSocialMedia(APIView):
 
 
 class UpdateSocialMedia(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def get(self, request, social_media_id):
         try:
@@ -588,7 +577,7 @@ class UpdateSocialMedia(APIView):
         return Response({"message": "Social Media entry updated successfully"}, status=status.HTTP_200_OK)
 
 class InactiveSocialMedia(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def put(self, request, social_media_id):
         if social_media_id is None:
@@ -604,7 +593,7 @@ class InactiveSocialMedia(APIView):
         
 # manage role
 class CreateRole(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def post(self, request):
         role = Role(role=request.data['role'], description=request.data.get('description', ''))
@@ -612,15 +601,13 @@ class CreateRole(APIView):
         return Response({"message": "Role created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveRoles(APIView):
-    # permission_classes = [IsAuthenticated]
-
     def get(self, request):
         roles = Role.objects.all()
         data = [{"id": role.id, "role": role.role, "description": role.description} for role in roles]
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateRole(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def get(self, request, role_id):
         try:
@@ -647,7 +634,7 @@ class UpdateRole(APIView):
 
 # manage Industry Views
 class CreateIndustry(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def post(self, request):
         industry = Industry(
@@ -659,15 +646,13 @@ class CreateIndustry(APIView):
         return Response({"message": "Industry created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveIndustry(APIView):
-    # permission_classes = [IsAuthenticated]
-
     def get(self, request):
         industries = Industry.objects.all()
         data = [{"id": ind.id, "title": ind.title, "description": ind.description, "website": ind.website} for ind in industries]
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateIndustry(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def get(self, request, industry_id):
         try:
@@ -696,7 +681,7 @@ class UpdateIndustry(APIView):
 
 # manage Location Views
 class CreateLocation(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def post(self, request):
         location = Location(location=request.data['location'])
@@ -704,15 +689,13 @@ class CreateLocation(APIView):
         return Response({"message": "Location created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveLocation(APIView):
-    # permission_classes = [IsAuthenticated]
-
     def get(self, request):
         locations = Location.objects.all()
         data = [{"id": loc.id, "location": loc.location} for loc in locations]
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateLocation(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def get(self, request, location_id):
         try:
@@ -738,7 +721,7 @@ class UpdateLocation(APIView):
 
 # manage Country 
 class CreateCountry(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def post(self, request):
         country = Country(
@@ -749,15 +732,13 @@ class CreateCountry(APIView):
         return Response({"message": "Country created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveCountry(APIView):
-    # permission_classes = [IsAuthenticated]
-
     def get(self, request):
         countries = Country.objects.all()
         data = [{"id": country.id, "country_name": country.country_name, "country_code": country.country_code} for country in countries]
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateCountry(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def get(self, request, country_id):
         try:
@@ -787,6 +768,7 @@ class UpdateCountry(APIView):
 
 # alumni can register
 class RegisterUsers(APIView):
+    
     def post(self, request):
         email = request.data.get('email')
         
@@ -899,7 +881,7 @@ class ShowMemberData(APIView):
 
 # Bulk Register by manager 
 class BulkRegisterUsers(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
     def post(self, request):
         group_name = request.data.get('group_name')
         if not group_name:
@@ -1019,7 +1001,7 @@ class BulkRegisterUsers(APIView):
 
 # Single register by manager
 class SingleRegisterUser(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
     def post(self, request):
         group_name = request.data.get('group_name')
         if not group_name:
@@ -1130,7 +1112,7 @@ class SingleRegisterUser(APIView):
 # manage skills
 
 class CreateSkill(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def post(self, request):
         skill = Skill(
@@ -1141,7 +1123,6 @@ class CreateSkill(APIView):
         return Response({"message": "Skill created successfully"}, status=status.HTTP_201_CREATED)
 
 class RetrieveSkill(APIView):
-    # permission_classes = [IsAuthenticated]
     def get(self, request):
         skills = Skill.objects.all()
         data = [
@@ -1155,7 +1136,7 @@ class RetrieveSkill(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateSkill(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def get(self, request, skill_id):
         try:
@@ -1182,7 +1163,7 @@ class UpdateSkill(APIView):
 
 # profile picture
 class ProfilePicture(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     def get(self, request,member_id):
         member = Member.objects.get(id=member_id)
         data = {
@@ -1218,7 +1199,7 @@ class ProfilePicture(APIView):
 
 # basic profile
 class MemberData(APIView):
-    
+    permission_classes = [IsAuthenticated]
     def get(self, request,member_id):
         # member_id = request.data.get('member_id')
         
@@ -1270,10 +1251,9 @@ class MemberData(APIView):
 
         return Response({'message': 'Member Updated successfully'}, status=status.HTTP_200_OK)
 
-# ret
 # manage member skills
 class CreateMemberSkill(APIView):
-    # permission_classes = [IsAuthenticated,IsAlumni]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         try:
@@ -1290,7 +1270,7 @@ class CreateMemberSkill(APIView):
             return Response({"message": "Member or Skill not found"}, status=status.HTTP_404_NOT_FOUND)
 
 class RetrieveMemberSkills(APIView):
-    # permission_classes = [IsAuthenticated,IsAlumni]
+    permission_classes = [IsAuthenticated]
     def get(self, request,member_id):
         member_skills = Member_Skills.objects.filter(member_id=member_id)
         data = [
@@ -1336,7 +1316,7 @@ class DeleteMemberSkill(APIView):
         
 # manage member education
 class CreateMemberEducation(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = MemberEducationSerializer(data=request.data)
@@ -1465,7 +1445,7 @@ class DeleteMemberExperience(APIView):
 
 # contact details for alumni
 class CreateAlumni(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = AlumniSerializer(data=request.data)
@@ -1503,49 +1483,113 @@ class UpdateAlumni(APIView):
         
 
 # profile status
+# class ProfileCompletionStatus(APIView):
+#     permission_classes = [IsAuthenticated]
+#     def get(self, request, member_id):
+#         try:
+#             member = Member.objects.get(id=member_id)
+#         except Member.DoesNotExist:
+#             return Response({'error': 'Member not found'}, status=status.HTTP_404_NOT_FOUND)
+
+#         # Basic Profile Completion
+#         basic_fields = [member.salutation, member.gender, member.dob, member.email, member.mobile_no]
+#         basic_complete = all(basic_fields)
+
+#         # Skills Completion
+#         skills_complete = Member_Skills.objects.filter(member=member).exists()
+
+#         # Education Completion
+#         education_complete = Member_Education.objects.filter(member=member).exists()
+
+#         # Experience Completion
+#         experience_complete = Member_Experience.objects.filter(member=member).exists()
+
+#         # Alumni Completion (for alumni only)
+#         alumni_complete = True
+        
+#         if Alumni.objects.filter(member=member).exists():
+#             alumni = Alumni.objects.get(member=member)
+#             alumni_complete = all([alumni.address, alumni.postal_code])
+
+#         # Calculate overall completion status
+#         completed_sections = sum([basic_complete, skills_complete, education_complete, experience_complete, alumni_complete])
+#         total_sections = 5  # Adjust based on the sections you are checking
+#         completion_percentage = (completed_sections / total_sections) * 100
+
+#         status = "Incomplete"
+#         if completion_percentage == 100:
+#             status = "Complete"
+#         elif completion_percentage >= 50:
+#             status = "Partially Complete"
+
+#         return Response({'completion_percentage': completion_percentage})
+
 class ProfileCompletionStatus(APIView):
-    
+    # permission_classes = [IsAuthenticated]
+
     def get(self, request, member_id):
         try:
             member = Member.objects.get(id=member_id)
         except Member.DoesNotExist:
             return Response({'error': 'Member not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Basic Profile Completion
-        basic_fields = [member.salutation, member.gender, member.dob, member.email, member.mobile_no]
-        basic_complete = all(basic_fields)
-
+        # Profile Picture
+        profile_picture_complete = bool(member.profile_picture)  # 10%
+        
+        # Basic Profile Completion (5 fields)
+        basic_fields = [
+            member.salutation,
+            member.gender,
+            member.dob,
+            member.email,
+            member.mobile_no,
+        ]
+        basic_complete = all(basic_fields)  # Complete if all fields are filled
+        
         # Skills Completion
-        skills_complete = Member_Skills.objects.filter(member=member).exists()
+        skills_complete = Member_Skills.objects.filter(member=member).exists()  # 10%
 
         # Education Completion
-        education_complete = Member_Education.objects.filter(member=member).exists()
+        education_complete = Member_Education.objects.filter(member=member).exists()  # 10%
 
         # Experience Completion
-        experience_complete = Member_Experience.objects.filter(member=member).exists()
+        experience_complete = Member_Experience.objects.filter(member=member).exists()  # 10%
 
-        # Alumni Completion (for alumni only)
-        alumni_complete = True
+        # Alumni Completion
+        alumni_complete = False
         if Alumni.objects.filter(member=member).exists():
             alumni = Alumni.objects.get(member=member)
-            alumni_complete = all([alumni.address, alumni.postal_code])
+            alumni_complete = all([alumni.address, alumni.postal_code])  # Both fields required for 10%
 
         # Calculate overall completion status
-        completed_sections = sum([basic_complete, skills_complete, education_complete, experience_complete, alumni_complete])
-        total_sections = 5  # Adjust based on the sections you are checking
-        completion_percentage = (completed_sections / total_sections) * 100
+        completion_percentage = 0
 
+        # Add up completion based on the criteria
+        completion_percentage += 10 if profile_picture_complete else 0  # Profile Picture
+        completion_percentage += 10 if basic_complete else 0  # Basic Profile
+        completion_percentage += 10 if skills_complete else 0  # Skills
+        completion_percentage += 10 if education_complete else 0  # Education
+        completion_percentage += 10 if experience_complete else 0  # Experience
+        completion_percentage += 10 if alumni_complete else 0  # Alumni
+
+        # Normalize to a total of 100%
+        completion_percentage = min(completion_percentage, 100)
+
+        # Determine status
         status = "Incomplete"
         if completion_percentage == 100:
             status = "Complete"
         elif completion_percentage >= 50:
             status = "Partially Complete"
 
-        return Response({'completion_percentage': completion_percentage})
+        return Response({
+            'completion_percentage': completion_percentage,
+            'status': status
+        })
 
 # list all members
 class MemberListView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         members = Member.objects.exclude(user__isnull=True)
@@ -1576,8 +1620,8 @@ class MemberListView(APIView):
 
 # filters
 class MemberFilterView(APIView):
+    permission_classes = [IsAuthenticated]
     def post(self, request, *args, **kwargs):
-        # Extract data from the JSON body
         batch = request.data.get('batch', None)
         role = request.data.get('role', None)
         course = request.data.get('course', None)
@@ -1656,6 +1700,7 @@ class MemberFilterView(APIView):
 
 # detail in member
 class MemberDetailView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request, member_id):
         try:
             member = Member.objects.get(id=member_id)

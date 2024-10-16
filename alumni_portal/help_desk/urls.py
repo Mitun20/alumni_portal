@@ -17,6 +17,7 @@ urlpatterns = [
 
     path('update_status/<int:ticket_id>/', TicketStatusUpdate.as_view(), name='update_status'),
     path('reply_ticket/<int:ticket_id>/',ReplyTicket.as_view(),name='reply_ticket'),
+    path('tickets_replies/<int:ticket_id>/', TicketReplies.as_view(), name='ticket_replies'),
     path('close_ticket/<int:ticket_id>/',TicketClose.as_view(),name='close_ticket'),
 
     path('filter_ticket/', TicketFilterView.as_view(), name='filter_ticket'),

@@ -22,5 +22,4 @@ urlpatterns = [
 
     path('filter_ticket/', TicketFilterView.as_view(), name='filter_ticket'),
 
-    
 ]

@@ -10,6 +10,8 @@ from .serializers import *
 from django.db.models import Q
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db.models import Count
+from account.permissions import *
 
 class CreateJobPost(APIView):
     permission_classes = [IsAuthenticated]
@@ -61,7 +63,7 @@ class RetrieveJobPost(APIView):
                 'role': job.role.role,  # Adjust based on your Role model
                 # 'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
                 'salary_package': job.salary_package,
-                # 'dead_line': job.dead_line,
+                'dead_line': job.dead_line,
                 # 'job_description': job.job_description,
                 'file': request.build_absolute_uri(job.file.url) if job.file else None,
                 # 'post_type': job.post_type,
@@ -70,39 +72,64 @@ class RetrieveJobPost(APIView):
             })
 
         return Response(job_posts_data, status=status.HTTP_200_OK)
+
+class MainRetrieveJobPost(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        job_posts = JobPost.objects.annotate(application_count=Count('application'))
+        
+        # Manually create a list of job post data
+        job_posts_data = []
+        for job in job_posts:
+            job_posts_data.append({
+                'id': job.id,
+                # 'posted_by': job.posted_by.username,  # Assuming User has a username field
+                'job_title': job.job_title,
+                'industry': job.industry.title,  # Adjust based on your Industry model
+                # 'experience_level_from': job.experience_level_from,
+                # 'experience_level_to': job.experience_level_to,
+                'location': job.location,
+                # 'contact_email': job.contact_email,
+                # 'contact_link': job.contact_link,
+                'role': job.role.role,  # Adjust based on your Role model
+                # 'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
+                'salary_package': job.salary_package,
+                # 'dead_line': job.dead_line,
+                # 'job_description': job.job_description,
+                'file': request.build_absolute_uri(job.file.url) if job.file else None,
+                # 'post_type': job.post_type,
+                'posted_on': job.posted_on,
+                'is_active': job.is_active,
+                'application_count': job.application_count,
+            })
+
+        return Response(job_posts_data, status=status.HTTP_200_OK)
     
 class MyJobPost(APIView):
     permission_classes = [IsAuthenticated]
+
     def get(self, request):
         try:
-            job_posts = JobPost.objects.filter(posted_by=request.user)
-            # Manually create a list of job post data
+            job_posts = JobPost.objects.filter(posted_by=request.user).annotate(application_count=Count('application'))
+
             job_posts_data = []
             for job in job_posts:
                 job_posts_data.append({
                     'id': job.id,
-                    # 'posted_by': job.posted_by.username,  # Assuming User has a username field
                     'job_title': job.job_title,
                     'industry': job.industry.title,  # Adjust based on your Industry model
-                    # 'experience_level_from': job.experience_level_from,
-                    # 'experience_level_to': job.experience_level_to,
                     'location': job.location,
-                    # 'contact_email': job.contact_email,
-                    # 'contact_link': job.contact_link,
                     'role': job.role.role,  # Adjust based on your Role model
-                    # 'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
                     'salary_package': job.salary_package,
-                    # 'dead_line': job.dead_line,
-                    # 'job_description': job.job_description,
                     'file': request.build_absolute_uri(job.file.url) if job.file else None,
-                    # 'post_type': job.post_type,
                     'posted_on': job.posted_on,
-                    # 'is_active': job.is_active,
+                    'application_count': job.application_count,  # Number of applications for this job post
                 })
 
             return Response(job_posts_data, status=status.HTTP_200_OK)
         except JobPost.DoesNotExist:
-                return Response({"message": "Job post not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Job post not found"}, status=status.HTTP_404_NOT_FOUND)
                         
 class UpdateJobPost(APIView):
     permission_classes = [IsAuthenticated]
@@ -120,31 +147,21 @@ class UpdateJobPost(APIView):
             job_post = JobPost.objects.get(id=post_id)
         except JobPost.DoesNotExist:
             return Response({"message": "Job post not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Assuming you want to check for permissions
         # if job_post.posted_by != request.user:
         #     return Response({"message": "You do not have permission to Edit this comment."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = JobPostUpdateSerializer(job_post, data=request.data)
         
-        industry = Industry.objects.get(id=request.data.get('industry'))
-        role = Role.objects.get(id=request.data.get('role'))
-        # Update fields
-        job_post.job_title = request.data.get('job_title', job_post.job_title)
-        job_post.industry = industry
-        job_post.experience_level_from = request.data.get('experience_level_from', job_post.experience_level_from)
-        job_post.experience_level_to = request.data.get('experience_level_to', job_post.experience_level_to)
-        job_post.location = request.data.get('location', job_post.location)
-        job_post.contact_email = request.data.get('contact_email', job_post.contact_email)
-        job_post.contact_link = request.data.get('contact_link', job_post.contact_link)
-        job_post.role = role
-        job_post.salary_package = request.data.get('salary_package', job_post.salary_package)
-        job_post.dead_line = request.data.get('dead_line', job_post.dead_line)
-        job_post.job_description = request.data.get('job_description', job_post.job_description)
-
-        # Handle file upload
-        if request.FILES.get('file'):
-            job_post.file = request.FILES.get('file')
-
-        job_post.save()
-        job_post.skills.set(request.data.getlist('skills', []))  # Update skills
-        return Response({"message": "Job post updated successfully"}, status=status.HTTP_200_OK)
+        if serializer.is_valid():
+            # Handle file upload if it exists
+            if 'file' in request.FILES:
+                job_post.file = request.FILES['file']
+                
+            serializer.save()  # This will call the update method in the serializer
+            return Response({"message": "Job post updated successfully"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class InactivateJobPost(APIView):
@@ -394,7 +411,6 @@ class JobPostFilterView(APIView):
 
 # filter Business directory
 
-
 class BusinessDirectoryFilterView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -560,12 +576,12 @@ class CreateApplication(APIView):
 class MyJobApplication(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request,job_post_id):
         # Get the job posts created by the authenticated user
-        user_job_posts = JobPost.objects.filter(posted_by=request.user)
+        job_post = JobPost.objects.get(id=job_post_id)
 
         # Get applications for those job posts
-        applications = Application.objects.filter(job_post__in=user_job_posts)
+        applications = Application.objects.filter(job_post=job_post)
 
         applications_data = []
         for application in applications:
@@ -590,6 +606,7 @@ class DetailViewApplication(APIView):
         
         applications_data={
                 'id': application.id,
+                'job_name': application.job_post.job_title,
                 'full_name': application.full_name,
                 'email': application.email,
                 'mobile_number': application.mobile_number,

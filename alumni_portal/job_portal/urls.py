@@ -5,6 +5,7 @@ urlpatterns = [
     # Job Post 
     path('create_job_post/', CreateJobPost.as_view(), name='create_job_post'),
     path('retrieve_job_post/', RetrieveJobPost.as_view(), name='retrieve_job_post'),
+    path('retrieve_main_job_post/', MainRetrieveJobPost.as_view(), name='retrieve_main_job_post'),
     path('my_job_post/', MyJobPost.as_view(), name='my_job_post'),  
     path('update_job_post/<int:post_id>/', UpdateJobPost.as_view(), name='update_job_post'),
     path('deactivate_job_post/<int:post_id>/', InactivateJobPost.as_view(), name='deactivate_job_post'),
@@ -28,6 +29,6 @@ urlpatterns = [
 
     # Applications
     path('create_application/', CreateApplication.as_view(), name='create_application'),
-    path('my_job_applications/', MyJobApplication.as_view(), name='my_job_applications'),
+    path('my_job_applications/<int:job_post_id>/', MyJobApplication.as_view(), name='my_job_applications'),
     path('detail_view_application/<int:application_id>/', DetailViewApplication.as_view(), name='detail_view_application'),
 ]

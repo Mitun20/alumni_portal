@@ -10,6 +10,8 @@ from django.shortcuts import get_object_or_404
 
 #  retrieve status
 class TicketStatusList(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def get(self, request):
         statuses = TicketStatus.objects.all()
         status_list = [{"id": status.id, "status": status.status} for status in statuses]
@@ -17,6 +19,8 @@ class TicketStatusList(APIView):
 
 #  retrieve category
 class TicketCategoryList(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def get(self, request):
         categories = TicketCategory.objects.all()
         category_list = [{"id": category.id, "category": category.category} for category in categories]

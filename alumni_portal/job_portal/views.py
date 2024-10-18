@@ -15,7 +15,6 @@ from account.permissions import *
 
 class CreateJobPost(APIView):
     permission_classes = [IsAuthenticated]
-
     def post(self, request):
         
         industry = Industry.objects.get(id=request.data.get('industry'))
@@ -125,6 +124,7 @@ class MyJobPost(APIView):
                     'file': request.build_absolute_uri(job.file.url) if job.file else None,
                     'posted_on': job.posted_on,
                     'application_count': job.application_count,  # Number of applications for this job post
+                    'is_active': job.is_active,
                 })
 
             return Response(job_posts_data, status=status.HTTP_200_OK)
@@ -184,12 +184,11 @@ class DetailJobPost(APIView):
 
     def get(self, request, post_id):
         try:
-            job_posts = JobPost.objects.get(id=post_id)
+            job = JobPost.objects.get(id=post_id)
         
         # Manually create a list of job post data
-            job_posts_data = []
-            for job in job_posts:
-                job_posts_data.append({
+           
+            job_posts_data={
                     
                     'posted_by': job.posted_by.username,  # Assuming User has a username field
                     'job_title': job.job_title,
@@ -206,7 +205,7 @@ class DetailJobPost(APIView):
                     'job_description': job.job_description,
                     'file': request.build_absolute_uri(job.file.url) if job.file else None,
                     'posted_on': job.posted_on,
-                })
+                }
 
             return Response(job_posts_data, status=status.HTTP_200_OK)
         except JobPost.DoesNotExist:
@@ -392,7 +391,7 @@ class JobPostFilterView(APIView):
             filters &= Q(post_type__icontains=post_type)
 
         # Apply the filters in a single query
-        queryset = JobPost.objects.filter(filters)
+        queryset = JobPost.objects.filter(filters).annotate(application_count=Count('application'))
 
         # Prepare the response data without serializers
         data = []
@@ -402,9 +401,10 @@ class JobPostFilterView(APIView):
                 "job_title": job.job_title,
                 "industry": job.industry.title,  
                 "location": job.location,
-                "role": job.role.role, 
+                "role": job.role.role,
                 "posted_on": job.posted_on,
                 "is_active": job.is_active,
+                'application_count': job.application_count,
             })
 
         return Response(data, status=status.HTTP_200_OK)
@@ -499,8 +499,8 @@ class DeleteJobComment(APIView):
 class CreateApplication(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        job_post = JobPost.objects.get(id=request.data.get('job_post'))
+    def post(self, request,job_post_id):
+        job_post = JobPost.objects.get(id=job_post_id)
         
         application = Application(
             job_post=job_post,
@@ -574,7 +574,7 @@ class CreateApplication(APIView):
 #         return Response(applications_data, status=status.HTTP_200_OK)
 
 class MyJobApplication(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request,job_post_id):
         # Get the job posts created by the authenticated user

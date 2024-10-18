@@ -38,7 +38,7 @@ class CreateTicket(APIView):
         alumni = Alumni.objects.get(member=member)
 
         category = TicketCategory.objects.get(id=request.data.get('category'))
-        ticket_status = get_object_or_404(TicketStatus, status='Submitted')
+        ticket_status = get_object_or_404(TicketStatus, status='Open')
 
         
         ticket = Ticket(
@@ -55,7 +55,7 @@ class CreateTicket(APIView):
 
 # my tickets
 class MyTicket(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         # Get the Member object associated with the authenticated user
@@ -88,12 +88,12 @@ class RetrieveTicket(APIView):
     def get(self, request):
         tickets = Ticket.objects.all()
         
-        # Manually create a list of ticket data
         tickets_data = []
         for ticket in tickets:
+            full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
             tickets_data.append({
                 'id': ticket.id,
-                'name': ticket.alumni.member.user.first_name,
+                'name': full_name,
                 'batch': ticket.alumni.member.batch.title,
                 'batch': ticket.alumni.member.batch.end_year,
                 'alumni': ticket.alumni.member.email,  # Adjust based on your Alumni model
@@ -112,13 +112,10 @@ class FacultyUsers(APIView):
     # permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Get the 'Faculty' group
         faculty_group = Group.objects.get(name='Faculty')
 
         if faculty_group:
-            # Retrieve users belonging to the 'Faculty' group
             users = User.objects.filter(groups=faculty_group)
-            # Create a list of user data dictionaries
             user_data = [{'id': user.id, 'username': user.username} for user in users]
             return Response(user_data)
         else:
@@ -129,7 +126,7 @@ class TicketAssignTo(APIView):
     # permission_classes = [IsAuthenticated]
 
     def post(self, request, ticket_id):
-        assigned_to_id = request.data.get('assigned_to')  # Get the assigned user ID from the request
+        assigned_to_id = request.data.get('faculty_id')  # Get the assigned user ID from the request
         message = request.data.get('message')
         
         # Fetch the ticket and assigned user
@@ -140,13 +137,14 @@ class TicketAssignTo(APIView):
             ticket.last_status_on = datetime.now()
             ticket.save()
             assigned_to = User.objects.get(id=assigned_to_id)
+            
         except (Ticket.DoesNotExist, User.DoesNotExist):
             return Response({"error": "Invalid ticket or user ID"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check for existing TicketAssignment for the same ticket
-        existing_assignment = TicketAssignment.objects.filter(ticket=ticket).first()
-        if existing_assignment:
-            return Response({"error": "This ticket is already assigned."}, status=status.HTTP_400_BAD_REQUEST)
+        # existing_assignment = TicketAssignment.objects.filter(ticket=ticket).first()
+        # if existing_assignment:
+        #     return Response({"error": "This ticket is already assigned."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Create the TicketAssignment
         ticket_assignment = TicketAssignment(
@@ -159,7 +157,7 @@ class TicketAssignTo(APIView):
 
 # My Assignments
 class MyTicketAssignment(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         # Get the assigned ticket assignments for the authenticated user
@@ -171,14 +169,13 @@ class MyTicketAssignment(APIView):
             assignments_data.append({
                 'id': assignment.id,
                 'ticket_id': assignment.ticket.id,
-                # 'ticket_category': assignment.ticket.category.category,
-                # 'status': assignment.ticket.status.status,
+                'ticket_category': assignment.ticket.category.category,
+                'status': assignment.ticket.status.status,
                 # 'ticket_content': assignment.ticket.content, 
                 'assigned_on': assignment.assigned_on,
-                'message':assignment.message
-                # 'priority': assignment.ticket.priority,
+                'message':assignment.message,
+                'priority': assignment.ticket.priority,
                 # 'last_status_on': assignment.ticket.last_status_on,
-
             })
 
         return Response(assignments_data, status=status.HTTP_200_OK)
@@ -192,6 +189,10 @@ class ResponceTicketAssignment(APIView):
             # Fetch the TicketAssignment object
             ticket_assignment = TicketAssignment.objects.get(id=assignment_id)
             responce = request.data['responce']
+            
+            # Check if the response is already set
+            if ticket_assignment.response:
+                return Response({"error": "Response has already been submitted for this assignment."}, status=status.HTTP_400_BAD_REQUEST)
             # Check if the request user is the assigned user
             # if ticket_assignment.assigned_to != request.user:
             #     return Response({"error": "You do not have permission to update this assignment"}, status=status.HTTP_403_FORBIDDEN)
@@ -199,7 +200,7 @@ class ResponceTicketAssignment(APIView):
             ticket_assignment.response = responce
             ticket_assignment.respond_on = datetime.now()
             ticket_assignment.save()
-            return Response({"message": "Ticket assignment updated successfully"}, status=status.HTTP_200_OK)
+            return Response({"message": "Ticket Responce updated successfully"}, status=status.HTTP_200_OK)
         
         except TicketAssignment.DoesNotExist:
             return Response({"error": "Ticket assignment not found"}, status=status.HTTP_404_NOT_FOUND)

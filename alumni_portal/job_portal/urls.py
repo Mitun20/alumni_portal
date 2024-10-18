@@ -28,7 +28,7 @@ urlpatterns = [
     path('delete_job_comment/<int:comment_id>/', DeleteJobComment.as_view(), name='delete_job_comment'),  # Delete a specific comment
 
     # Applications
-    path('create_application/', CreateApplication.as_view(), name='create_application'),
+    path('create_application/<int:job_post_id>/', CreateApplication.as_view(), name='create_application'),
     path('my_job_applications/<int:job_post_id>/', MyJobApplication.as_view(), name='my_job_applications'),
     path('detail_view_application/<int:application_id>/', DetailViewApplication.as_view(), name='detail_view_application'),
 ]

@@ -795,6 +795,13 @@ class RegisterUsers(APIView):
         except Member.DoesNotExist:
             return Response({'error': 'Email not found in our records'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Check user group
+        if member.user.groups.filter(name='Faculty').exists():
+            return Response({'error': 'Faculties have only the option to login'}, status=status.HTTP_403_FORBIDDEN)
+        elif member.user.groups.filter(name='Alumni').exists():
+            return Response({'error': 'You have already registered'}, status=status.HTTP_400_BAD_REQUEST)
+
+        
         # Generate OTP
         otp = random.randint(100000, 999999)
 
@@ -843,8 +850,8 @@ class CreatingUser(APIView):
         except IntegrityError:
             return Response({'error': 'User with this email already exists'}, status=status.HTTP_400_BAD_REQUEST)
         
-        faculty_group = Group.objects.get(name='Alumni')
-        user.groups.add(faculty_group)
+        alumni_group = Group.objects.get(name='Alumni')
+        user.groups.add(alumni_group)
         # Link the user to the member
         member.user = user
         member.save()

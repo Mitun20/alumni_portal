@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "account",
     "job_portal",
-    "help_desk"
+    "help_desk",
+    "event_portal"
 ]
 
 MIDDLEWARE = [

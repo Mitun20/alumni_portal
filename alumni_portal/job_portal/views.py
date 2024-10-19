@@ -44,28 +44,28 @@ class RetrieveJobPost(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        job_posts = JobPost.objects.all()
+        job_posts = JobPost.objects.filter(is_active=True).order_by('-id')
         
         # Manually create a list of job post data
         job_posts_data = []
         for job in job_posts:
             job_posts_data.append({
                 'id': job.id,
-                # 'posted_by': job.posted_by.username,  # Assuming User has a username field
+                'posted_by': job.posted_by.username, 
                 'job_title': job.job_title,
-                'industry': job.industry.title,  # Adjust based on your Industry model
+                'industry': job.industry.title, 
                 # 'experience_level_from': job.experience_level_from,
                 # 'experience_level_to': job.experience_level_to,
                 'location': job.location,
                 # 'contact_email': job.contact_email,
                 # 'contact_link': job.contact_link,
                 'role': job.role.role,  # Adjust based on your Role model
-                # 'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
+                'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
                 'salary_package': job.salary_package,
                 'dead_line': job.dead_line,
-                # 'job_description': job.job_description,
+                'job_description': job.job_description,
                 'file': request.build_absolute_uri(job.file.url) if job.file else None,
-                # 'post_type': job.post_type,
+                'post_type': job.post_type,
                 'posted_on': job.posted_on,
                 # 'is_active': job.is_active,
             })
@@ -76,7 +76,7 @@ class MainRetrieveJobPost(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        job_posts = JobPost.objects.annotate(application_count=Count('application'))
+        job_posts = JobPost.objects.annotate(application_count=Count('application')).order_by('-id')
         
         # Manually create a list of job post data
         job_posts_data = []
@@ -397,14 +397,26 @@ class JobPostFilterView(APIView):
         data = []
         for job in queryset:
             data.append({
-                "id": job.id,
-                "job_title": job.job_title,
-                "industry": job.industry.title,  
-                "location": job.location,
-                "role": job.role.role,
-                "posted_on": job.posted_on,
-                "is_active": job.is_active,
+                'id': job.id,
+                'posted_by': job.posted_by.username, 
+                'job_title': job.job_title,
+                'industry': job.industry.title, 
+                # 'experience_level_from': job.experience_level_from,
+                # 'experience_level_to': job.experience_level_to,
+                'location': job.location,
+                # 'contact_email': job.contact_email,
+                # 'contact_link': job.contact_link,
+                'role': job.role.role,  # Adjust based on your Role model
+                'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
+                'salary_package': job.salary_package,
+                'dead_line': job.dead_line,
+                'job_description': job.job_description,
+                'file': request.build_absolute_uri(job.file.url) if job.file else None,
+                'post_type': job.post_type,
+                'posted_on': job.posted_on,
+                'is_active': job.is_active,
                 'application_count': job.application_count,
+                
             })
 
         return Response(data, status=status.HTTP_200_OK)

@@ -95,10 +95,11 @@ class RetrieveTicket(APIView):
                 'id': ticket.id,
                 'name': full_name,
                 'batch': ticket.alumni.member.batch.title,
-                'batch': ticket.alumni.member.batch.end_year,
-                'alumni': ticket.alumni.member.email,  # Adjust based on your Alumni model
-                'category': ticket.category.category,  # Adjust based on your TicketCategory model
-                'status': ticket.status.status,  # Adjust based on your TicketStatus model
+                'end_year': ticket.alumni.member.batch.end_year,
+                'alumni': ticket.alumni.member.email,
+                'contact': ticket.alumni.member.email,
+                'category': ticket.category.category, 
+                'status': ticket.status.status, 
                 'priority': ticket.priority,
                 'due_date': ticket.due_date,
                 'last_status_on': ticket.last_status_on,
@@ -345,16 +346,20 @@ class TicketFilterView(APIView):
         # Prepare the response data
         data = []
         for ticket in queryset:
+            full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
             data.append({
-                "id": ticket.id,
-                "alumni": ticket.alumni.name,  # Adjust as necessary for the alumni's name
-                "category": ticket.category.category,
-                "status": ticket.status.status,
-                "priority": ticket.priority,
-                "due_date": ticket.due_date,
-                "content": ticket.content,
-                "assigned_to": ticket.assign_to.username if ticket.assign_to else None,
-                "last_status_on": ticket.last_status_on,
+                'id': ticket.id,
+                'name': full_name,
+                'batch': ticket.alumni.member.batch.title,
+                'end_year': ticket.alumni.member.batch.end_year,
+                'alumni': ticket.alumni.member.email,
+                'contact': ticket.alumni.member.mobile_no,
+                'category': ticket.category.category, 
+                'status': ticket.status.status, 
+                'priority': ticket.priority,
+                'due_date': ticket.due_date,
+                'last_status_on': ticket.last_status_on,
+                'content': ticket.content,
             })
 
         return Response(data, status=status.HTTP_200_OK)

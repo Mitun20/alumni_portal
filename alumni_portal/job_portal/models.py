@@ -47,7 +47,6 @@ class Application(models.Model):
     def __str__(self):
         return self.full_name
 
-
 class BusinessDirectory(models.Model):
     business_name = models.CharField(max_length=255)
     description = models.TextField()

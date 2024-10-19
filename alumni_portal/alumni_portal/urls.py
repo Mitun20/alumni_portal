@@ -23,6 +23,8 @@ urlpatterns = [
     path('', include('account.urls')),
     path('', include('job_portal.urls')),
     path('', include('help_desk.urls')),
+    path('', include('event_portal.urls')),
+    
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

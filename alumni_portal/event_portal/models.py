@@ -23,11 +23,11 @@ class Event(models.Model):
     instructions = models.TextField(blank=True, null=True)
     posted_on = models.DateField(auto_now_add=True)
     posted_by = models.ForeignKey(User, on_delete=models.CASCADE)
-
+    is_active = models.BooleanField(default=True)
     def __str__(self):
         return self.title
 
-class EventQuestion(models.Model):
+class Question(models.Model):
     question = models.CharField(max_length=225)
     options = models.CharField(max_length=225, blank=True, null=True)
     help_text = models.CharField(max_length=225, blank=True, null=True)
@@ -35,6 +35,10 @@ class EventQuestion(models.Model):
 
     def __str__(self):
         return self.question
+
+class EventQuestion(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
 
 class EventRegistration(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
@@ -46,7 +50,7 @@ class EventRegistration(models.Model):
 
 class RegistrationResponse(models.Model):
     registered_event = models.ForeignKey(EventRegistration, on_delete=models.CASCADE)
-    question = models.ForeignKey(EventQuestion, on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
     response = models.CharField(max_length=255)
 
     def __str__(self):

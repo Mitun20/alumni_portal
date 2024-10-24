@@ -53,6 +53,7 @@ class CreateEvent(APIView):
         
         if serializer.is_valid():
             event = serializer.save()  # Save the event and get the instance
+            
             return Response({
                 "message": "Event created successfully",
                 "event_id": event.id  # Return the created event ID

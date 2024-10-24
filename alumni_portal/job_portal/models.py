@@ -64,7 +64,6 @@ class BusinessDirectory(models.Model):
     def __str__(self):
         return self.business_name
 
-
 class JobComment(models.Model):
     job = models.ForeignKey(JobPost, on_delete=models.CASCADE)
     comment_by = models.ForeignKey(User, on_delete=models.CASCADE)

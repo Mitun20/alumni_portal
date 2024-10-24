@@ -16,20 +16,83 @@ class TicketStatusList(APIView):
         statuses = TicketStatus.objects.all()
         status_list = [{"id": status.id, "status": status.status} for status in statuses]
         return Response(status_list, status=status.HTTP_200_OK)
-
-#  retrieve category
-class TicketCategoryList(APIView):
-    permission_classes = [IsAuthenticated]
     
+# manage category
+class CreateTicketCategory(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        category = TicketCategory(category=request.data['category'])
+        category.save()
+        return Response({"message": "Ticket category created successfully"}, status=status.HTTP_201_CREATED)
+
+class RetrieveTicketCategory(APIView):
     def get(self, request):
         categories = TicketCategory.objects.all()
-        category_list = [{"id": category.id, "category": category.category} for category in categories]
-        return Response(category_list, status=status.HTTP_200_OK)
+        data = [
+            {
+                "id": category.id,
+                "category": category.category
+            }
+            for category in categories
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
+class UpdateTicketCategory(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, category_id):
+        try:
+            category = TicketCategory.objects.get(id=category_id)
+            data = {
+                "category": category.category
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except TicketCategory.DoesNotExist:
+            return Response({"message": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, category_id):
+        try:
+            category = TicketCategory.objects.get(id=category_id)
+        except TicketCategory.DoesNotExist:
+            return Response({"message": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        category.category = request.data["category"]
+        category.save()
+
+        return Response({"message": "Category updated successfully"}, status=status.HTTP_200_OK)
+
+
+
+# #  retrieve category
+# class TicketCategoryList(APIView):
+#     permission_classes = [IsAuthenticated]
+    
+#     def get(self, request):
+#         categories = TicketCategory.objects.all()
+#         category_list = [{"id": category.id, "category": category.category} for category in categories]
+#         return Response(category_list, status=status.HTTP_200_OK)
 
 #  create tickets
 class CreateTicket(APIView):
     permission_classes = [IsAuthenticated]
 
+    def get(self, request):
+        # Get the Member object associated with the authenticated user
+        member = Member.objects.get(user=request.user)
+        
+        # Get the Alumni object associated with the Member
+        alumni = Alumni.objects.get(member=member)
+
+        # Prepare the response data
+        response_data = {
+            "full_name": alumni.member.user.get_full_name(),  # Assuming User has a get_full_name method
+            "email": alumni.member.email,
+            "contact": alumni.member.mobile_no,
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
     def post(self, request):
         # Get the Member object associated with the authenticated user
         member = Member.objects.get(user=request.user)
@@ -40,7 +103,6 @@ class CreateTicket(APIView):
         category = TicketCategory.objects.get(id=request.data.get('category'))
         ticket_status = get_object_or_404(TicketStatus, status='Open')
 
-        
         ticket = Ticket(
             alumni=alumni,
             category=category,
@@ -108,6 +170,34 @@ class RetrieveTicket(APIView):
 
         return Response(tickets_data, status=status.HTTP_200_OK)
     
+# get open ticket
+class RetrieveOpenTicket(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        tickets = Ticket.objects.filter(status__status="Open")
+        
+        tickets_data = []
+        for ticket in tickets:
+            full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
+            tickets_data.append({
+                'id': ticket.id,
+                'name': full_name,
+                'batch': ticket.alumni.member.batch.title,
+                'end_year': ticket.alumni.member.batch.end_year,
+                'alumni': ticket.alumni.member.email,
+                'contact': ticket.alumni.member.email,
+                'category': ticket.category.category, 
+                'status': ticket.status.status, 
+                'priority': ticket.priority,
+                'due_date': ticket.due_date,
+                'last_status_on': ticket.last_status_on,
+                'content': ticket.content,
+            })
+
+        return Response(tickets_data, status=status.HTTP_200_OK)
+
+
 # get all faculty 
 class FacultyUsers(APIView):
     # permission_classes = [IsAuthenticated]
@@ -200,11 +290,38 @@ class ResponceTicketAssignment(APIView):
 
             ticket_assignment.response = responce
             ticket_assignment.respond_on = datetime.now()
+            ticket_assignment.ticket.status = get_object_or_404(TicketStatus, status='Replied')
             ticket_assignment.save()
             return Response({"message": "Ticket Responce updated successfully"}, status=status.HTTP_200_OK)
         
         except TicketAssignment.DoesNotExist:
             return Response({"error": "Ticket assignment not found"}, status=status.HTTP_404_NOT_FOUND)
+
+# All responced tickets
+class ResponcedTicket(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Get the assigned ticket assignments for the authenticated user
+        assigned_tickets = TicketAssignment.objects.filter(ticket__status__status="Replied")
+        
+        # Create a list of assignments data
+        assignments_data = []
+        for assignment in assigned_tickets:
+            assignments_data.append({
+                'id': assignment.id,
+                'ticket_id': assignment.ticket.id,
+                'ticket_category': assignment.ticket.category.category,
+                'status': assignment.ticket.status.status,
+                # 'ticket_content': assignment.ticket.content, 
+                'assigned_on': assignment.assigned_on,
+                'message':assignment.message,
+                'priority': assignment.ticket.priority,
+                # 'last_status_on': assignment.ticket.last_status_on,
+            })
+
+        return Response(assignments_data, status=status.HTTP_200_OK)
+
 
 # responce for specific ticket assignment 
 class TicketAssignmentResponse(APIView):
@@ -230,11 +347,16 @@ class TicketStatusUpdate(APIView):
         # Get the ticket and status
         try:
             ticket = Ticket.objects.get(id=ticket_id)
+            full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
             ticket_data = {
                 'id': ticket.id,
-                'alumni': ticket.alumni.member.email,  # Adjust based on your Alumni model
-                'category': ticket.category.category,  # Adjust based on your TicketCategory model
-                'status': ticket.status.status,  # Adjust based on your TicketStatus model
+                'name': full_name,
+                'batch': ticket.alumni.member.batch.title,
+                'end_year': ticket.alumni.member.batch.end_year,
+                'alumni': ticket.alumni.member.email,
+                'contact': ticket.alumni.member.email,
+                'category': ticket.category.category, 
+                'status': ticket.status.status, 
                 'priority': ticket.priority,
                 'due_date': ticket.due_date,
                 'last_status_on': ticket.last_status_on,
@@ -245,19 +367,43 @@ class TicketStatusUpdate(APIView):
         
         return Response(ticket_data, status=status.HTTP_200_OK)
     def post(self, request, ticket_id):
-        # Get the ticket and status
+        # Get the ticket and update its status, priority, and due date
         try:
             ticket = Ticket.objects.get(id=ticket_id)
-            ticket_status = TicketStatus.objects.get(id=request.data.get('status'))
+            ticket_status_id = request.data.get('status')
+            ticket_priority = request.data.get('priority')
+            ticket_due_date = request.data.get('due_date')
+
+            # Track if the status was updated
+            status_changed = False
+
+            # Update the status if provided
+            if ticket_status_id:
+                ticket_status = TicketStatus.objects.get(id=ticket_status_id)
+                if ticket.status != ticket_status:
+                    ticket.status = ticket_status
+                    status_changed = True
+
+            # Update the priority if provided
+            if ticket_priority and ticket_priority in dict(Ticket.PRIORITY_CHOICES):
+                ticket.priority = ticket_priority
+
+            # Update the due date if provided
+            if ticket_due_date:
+                ticket.due_date = ticket_due_date  # Ensure this is a valid date format
+
+            # Update the last status date only if status changed
+            if status_changed:
+                ticket.last_status_on = datetime.now()
+
+            ticket.save()
+        
         except (Ticket.DoesNotExist, TicketStatus.DoesNotExist):
             return Response({"error": "Invalid ticket or status ID"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Update the ticket status
-        ticket.status = ticket_status
-        ticket.last_status_on = datetime.now()
-        ticket.save()
-        
-        return Response({"message": "Ticket status updated successfully"}, status=status.HTTP_200_OK)
+        return Response({"message": "Ticket updated successfully"}, status=status.HTTP_200_OK)
 
 # reply ticket
 class ReplyTicket(APIView):

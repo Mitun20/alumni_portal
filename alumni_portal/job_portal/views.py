@@ -211,7 +211,57 @@ class DetailJobPost(APIView):
         except JobPost.DoesNotExist:
             return Response({"message": "Job post not found"}, status=status.HTTP_404_NOT_FOUND)
 
+# manage Industry type
+class CreateIndustryType(APIView):
+    permission_classes = [IsAuthenticated, IsAlumniManagerOrAdministrator]
 
+    def post(self, request):
+        industry_type = Industry_Type(
+            type_name=request.data['type_name'],
+            description=request.data.get('description', '')
+        )
+        industry_type.save()
+        return Response({"message": "Industry Type created successfully"}, status=status.HTTP_201_CREATED)
+
+class RetrieveIndustryType(APIView):
+    def get(self, request):
+        industry_types = Industry_Type.objects.all()
+        data = [
+            {
+                "id": industry_type.id,
+                "type_name": industry_type.type_name,
+                "description": industry_type.description
+            }
+            for industry_type in industry_types
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
+class UpdateIndustryType(APIView):
+    permission_classes = [IsAuthenticated, IsAlumniManagerOrAdministrator]
+
+    def get(self, request, industry_type_id):
+        try:
+            industry_type = Industry_Type.objects.get(id=industry_type_id)
+            data = {
+                "type_name": industry_type.type_name,
+                "description": industry_type.description
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Industry_Type.DoesNotExist:
+            return Response({"message": "Industry Type not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, industry_type_id):
+        try:
+            industry_type = Industry_Type.objects.get(id=industry_type_id)
+        except Industry_Type.DoesNotExist:
+            return Response({"message": "Industry Type not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        industry_type.type_name = request.data.get("type_name", industry_type.type_name)
+        industry_type.description = request.data.get("description", industry_type.description)
+        industry_type.save()
+
+        return Response({"message": "Industry Type updated successfully"}, status=status.HTTP_200_OK)
+    
 # manage Business Directory
 class CreateBusinessDirectory(APIView):
     permission_classes = [IsAuthenticated]
@@ -247,7 +297,7 @@ class RetrieveBusinessDirectory(APIView):
                     "business_name": business.business_name,
                     # "description": business.description,
                     "website": business.website,
-                    "industry_type": business.industry_type.id,  # or business.industry_type.name if you want the name
+                    "industry_type": business.industry_type.type_name,  # or business.industry_type.name if you want the name
                     "location": business.location,
                     # "contact_email": business.contact_email,
                     # "contact_number": business.contact_number,
@@ -292,24 +342,23 @@ class UpdateBusinessDirectory(APIView):
 
     def get(self, request, directory_id):
         try:
-            business_directories = BusinessDirectory.objects.filter(id=directory_id)
-            data = []
-            for business in business_directories:
-                data.append({
-                    "id": business.id,
-                    "business_name": business.business_name,
-                    "description": business.description,
-                    "website": business.website,
-                    "industry_type": business.industry_type.type_name, 
-                    "location": business.location,
-                    "contact_email": business.contact_email,
-                    "contact_number": business.contact_number,
-                    "country_code": business.country_code.country_code,  
-                    "are_you_part_of_management": business.are_you_part_of_management,
-                     "logo": request.build_absolute_uri(business.logo.url) if business.logo else None,
-                    "listed_on": business.listed_on,
-                    "listed_by": business.listed_by.id,  # or business.listed_by.username if you want the username
-                })
+            business = BusinessDirectory.objects.get(id=directory_id)
+            # for business in business_directories:
+            data={
+                "id": business.id,
+                "business_name": business.business_name,
+                "description": business.description,
+                "website": business.website,
+                "industry_type": business.industry_type.id, 
+                "location": business.location,
+                "contact_email": business.contact_email,
+                "contact_number": business.contact_number,
+                "country_code": business.country_code.id,  
+                "are_you_part_of_management": business.are_you_part_of_management,
+                "logo": request.build_absolute_uri(business.logo.url) if business.logo else None,
+                "listed_on": business.listed_on,
+                "listed_by": business.listed_by.id,  # or business.listed_by.username if you want the username
+                }
             return Response(data, status=status.HTTP_200_OK)
         
         except BusinessDirectory.DoesNotExist:
@@ -353,8 +402,8 @@ class DetailBusinessDirectory(APIView):
                 "location": business_directory.location,
                 "contact_email": business_directory.contact_email,
                 "contact_number": business_directory.contact_number,
-                "country_code": business_directory.country_code.country_code,  # or business_directory.country_code.name
-                "logo": business_directory.logo.url if business_directory.logo else None,
+                "country_code": business_directory.country_code.country_name,  # or business_directory.country_code.name
+                "logo": request.build_absolute_uri(business_directory.logo.url) if business_directory.logo else None,
                 "listed_on": business_directory.listed_on,
                 "listed_by": business_directory.listed_by.username,  # or business_directory.listed_by.username
             }
@@ -451,12 +500,17 @@ class BusinessDirectoryFilterView(APIView):
             data.append({
                 "id": business.id,
                 "business_name": business.business_name,
+                # "description": business.description,
                 "website": business.website,
-                "industry": business.industry_type.type_name,  # Assuming you want the industry name
+                "industry_type": business.industry_type.type_name,  # or business.industry_type.name if you want the name
                 "location": business.location,
-                "contact_email": business.contact_email,
-                "listed_on": business.listed_on,
+                # "contact_email": business.contact_email,
+                # "contact_number": business.contact_number,
+                # "country_code": business.country_code.id,  # or business.country_code.name if you want the name
+                # "are_you_part_of_management": business.are_you_part_of_management,
                 "logo": request.build_absolute_uri(business.logo.url) if business.logo else None,
+                "listed_on": business.listed_on,
+                # "listed_by": business.listed_by.id,  # or business.listed_by.username if you want the username
             })
 
         return Response(data, status=status.HTTP_200_OK)

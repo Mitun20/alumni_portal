@@ -11,6 +11,11 @@ urlpatterns = [
     path('deactivate_job_post/<int:post_id>/', InactivateJobPost.as_view(), name='deactivate_job_post'),
     path('detail_job_post/<int:post_id>/', DetailJobPost.as_view(), name='detail_job_post'),
 
+    # Industry Type
+    path('create_industry_type/', CreateIndustryType.as_view(), name='create_industry_type'),
+    path('retrieve_industry_type/', RetrieveIndustryType.as_view(), name='retrieve_industry_type'),
+    path('update_industry_type/<int:industry_type_id>/', UpdateIndustryType.as_view(), name='update_industry_type'),
+    
     # Business
     path('create_business_directory/', CreateBusinessDirectory.as_view(), name='create_business_directory'),
     path('retrieve_business_directory/', RetrieveBusinessDirectory.as_view(), name='retrieve_business_directory'),

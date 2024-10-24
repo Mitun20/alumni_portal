@@ -212,39 +212,75 @@ class FacultyUsers(APIView):
         else:
             return Response({'detail': 'Group not found.'}, status=404)
         
+        
+class AssignedUsersForTicket(APIView):
+    def get(self, request, ticket_id):
+        # Fetch the ticket
+        ticket = get_object_or_404(Ticket, id=ticket_id)
+
+        # Retrieve all assignments for the ticket
+        assignments = TicketAssignment.objects.filter(ticket=ticket)
+
+        # Create a list of assigned users
+        assigned_users = [
+            {
+                'user_id': assignment.assigned_to.id,
+                'username': assignment.assigned_to.username,
+                'message': assignment.message,
+            }
+            for assignment in assignments
+        ]
+
+        return Response({"assigned_users": assigned_users}, status=status.HTTP_200_OK)
+    
 # assign tickets to faculty
 class TicketAssignTo(APIView):
     # permission_classes = [IsAuthenticated]
 
     def post(self, request, ticket_id):
-        assigned_to_id = request.data.get('faculty_id')  # Get the assigned user ID from the request
+        assigned_to_ids = request.data.get('faculty_ids', [])  # Get the list of assigned user IDs
         message = request.data.get('message')
-        
-        # Fetch the ticket and assigned user
+
+        # Fetch the ticket
         try:
             ticket = Ticket.objects.get(id=ticket_id)
             ticket_status = get_object_or_404(TicketStatus, status='Assigned')
             ticket.status = ticket_status
             ticket.last_status_on = datetime.now()
             ticket.save()
-            assigned_to = User.objects.get(id=assigned_to_id)
-            
-        except (Ticket.DoesNotExist, User.DoesNotExist):
-            return Response({"error": "Invalid ticket or user ID"}, status=status.HTTP_400_BAD_REQUEST)
+        except Ticket.DoesNotExist:
+            return Response({"error": "Invalid ticket ID"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check for existing TicketAssignment for the same ticket
-        # existing_assignment = TicketAssignment.objects.filter(ticket=ticket).first()
-        # if existing_assignment:
-        #     return Response({"error": "This ticket is already assigned."}, status=status.HTTP_400_BAD_REQUEST)
+        # Initialize lists for errors and created assignments
+        errors = []
+        created_assignments = []
 
-        # Create the TicketAssignment
-        ticket_assignment = TicketAssignment(
-            ticket=ticket,
-            assigned_to=assigned_to,
-            message=message
-        )
-        ticket_assignment.save()
-        return Response({"message": "Ticket assigned successfully"}, status=status.HTTP_201_CREATED)
+        # Iterate through the assigned_to_ids and create TicketAssignments
+        for assigned_to_id in assigned_to_ids:
+            try:
+                assigned_to = User.objects.get(id=assigned_to_id)
+
+                # Check if the assignment already exists
+                if TicketAssignment.objects.filter(ticket=ticket, assigned_to=assigned_to).exists():
+                    errors.append(f"User {assigned_to.username} is already assigned to this ticket.")
+                    
+                    # continue  # Skip to the next user
+                if errors:
+                    return Response({"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+                
+                else:
+                    # Create the TicketAssignment
+                    ticket_assignment = TicketAssignment(
+                        ticket=ticket,
+                        assigned_to=assigned_to,
+                        message=message
+                    )
+                    ticket_assignment.save()
+                    created_assignments.append(ticket_assignment)
+
+            except User.DoesNotExist:
+                errors.append(f"Invalid user ID: {assigned_to_id}")
+        return Response({"message": "Ticket assigned successfully", "assignments": [str(a) for a in created_assignments]}, status=status.HTTP_201_CREATED)
 
 # My Assignments
 class MyTicketAssignment(APIView):
@@ -256,7 +292,9 @@ class MyTicketAssignment(APIView):
         
         # Create a list of assignments data
         assignments_data = []
+        
         for assignment in assigned_tickets:
+            has_response = bool(assignment.response)
             assignments_data.append({
                 'id': assignment.id,
                 'ticket_id': assignment.ticket.id,
@@ -267,6 +305,7 @@ class MyTicketAssignment(APIView):
                 'message':assignment.message,
                 'priority': assignment.ticket.priority,
                 # 'last_status_on': assignment.ticket.last_status_on,
+                "assignment_response": has_response
             })
 
         return Response(assignments_data, status=status.HTTP_200_OK)
@@ -287,11 +326,12 @@ class ResponceTicketAssignment(APIView):
             # Check if the request user is the assigned user
             # if ticket_assignment.assigned_to != request.user:
             #     return Response({"error": "You do not have permission to update this assignment"}, status=status.HTTP_403_FORBIDDEN)
-
+            # res_status=get_object_or_404(TicketStatus, status='Replied')
             ticket_assignment.response = responce
             ticket_assignment.respond_on = datetime.now()
-            ticket_assignment.ticket.status = get_object_or_404(TicketStatus, status='Replied')
+            # ticket_assignment.ticket.status = res_status
             ticket_assignment.save()
+            # ticket_assignment.ticket.save()
             return Response({"message": "Ticket Responce updated successfully"}, status=status.HTTP_200_OK)
         
         except TicketAssignment.DoesNotExist:
@@ -303,7 +343,7 @@ class ResponcedTicket(APIView):
 
     def get(self, request):
         # Get the assigned ticket assignments for the authenticated user
-        assigned_tickets = TicketAssignment.objects.filter(ticket__status__status="Replied")
+        assigned_tickets = TicketAssignment.objects.exclude(response__isnull=True).exclude(response__exact='')
         
         # Create a list of assignments data
         assignments_data = []
@@ -316,6 +356,7 @@ class ResponcedTicket(APIView):
                 # 'ticket_content': assignment.ticket.content, 
                 'assigned_on': assignment.assigned_on,
                 'message':assignment.message,
+                'responce':assignment.response,
                 'priority': assignment.ticket.priority,
                 # 'last_status_on': assignment.ticket.last_status_on,
             })
@@ -413,7 +454,7 @@ class ReplyTicket(APIView):
         # Get the ticket comment and reply text
         try:
             ticket = Ticket.objects.get(id=ticket_id)
-            reply_text = request.data.get('message')
+            reply_text = request.data.get('messages')
         except (Ticket.DoesNotExist, ValueError):
             
             return Response({"error": "Invalid ticket or reply text"}, status=status.HTTP_400_BAD_REQUEST)

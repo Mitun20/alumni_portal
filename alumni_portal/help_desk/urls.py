@@ -21,6 +21,7 @@ urlpatterns = [
     
     path('faculty_users/', FacultyUsers.as_view(), name='faculty_users'),
     path('assign_ticket/<int:ticket_id>/', TicketAssignTo.as_view(), name='assign_ticket'),
+    path('assigned_user_ticket/<int:ticket_id>/', AssignedUsersForTicket.as_view(), name='assigned_user_ticket'),
     path('assignments/', MyTicketAssignment.as_view(), name='assignments'),
     path('respond_ticket/<int:assignment_id>/', ResponceTicketAssignment.as_view(), name='respond_ticket'),
     path('responced_ticket/', ResponcedTicket.as_view(), name='responced_ticket'),

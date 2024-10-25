@@ -161,6 +161,7 @@ class RetrieveTicket(APIView):
                 'alumni': ticket.alumni.member.email,
                 'contact': ticket.alumni.member.email,
                 'category': ticket.category.category, 
+                'status_id': ticket.status.id, 
                 'status': ticket.status.status, 
                 'priority': ticket.priority,
                 'due_date': ticket.due_date,
@@ -320,22 +321,54 @@ class ResponceTicketAssignment(APIView):
             ticket_assignment = TicketAssignment.objects.get(id=assignment_id)
             responce = request.data['responce']
             
-            # Check if the response is already set
+            # if response is already set
             if ticket_assignment.response:
                 return Response({"error": "Response has already been submitted for this assignment."}, status=status.HTTP_400_BAD_REQUEST)
-            # Check if the request user is the assigned user
+            # if request user is not assigned user
             # if ticket_assignment.assigned_to != request.user:
             #     return Response({"error": "You do not have permission to update this assignment"}, status=status.HTTP_403_FORBIDDEN)
-            # res_status=get_object_or_404(TicketStatus, status='Replied')
             ticket_assignment.response = responce
             ticket_assignment.respond_on = datetime.now()
-            # ticket_assignment.ticket.status = res_status
             ticket_assignment.save()
-            # ticket_assignment.ticket.save()
+            # -------------------------------- if all assignments are responded
+            # total_assignments = TicketAssignment.objects.filter(ticket=ticket_assignment.ticket).count()
+            # responded_assignments = TicketAssignment.objects.filter(ticket=ticket_assignment.ticket, response__isnull=False).count()
+
+            # if total_assignments == responded_assignments:
+            #     # Update the ticket status to "Replied"
+            #     replied_status = get_object_or_404(TicketStatus, status='Replied')
+            #     ticket_assignment.ticket.status = replied_status
+            #     ticket_assignment.ticket.save()
+                
             return Response({"message": "Ticket Responce updated successfully"}, status=status.HTTP_200_OK)
         
         except TicketAssignment.DoesNotExist:
             return Response({"error": "Ticket assignment not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class IrresponseTicket(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Get the assigned ticket assignments for the authenticated user
+        assigned_tickets = TicketAssignment.objects.filter(response__isnull=True)
+        
+        # Create a list of assignments data
+        assignments_data = []
+        for assignment in assigned_tickets:
+            assignments_data.append({
+                'id': assignment.id,
+                'ticket_id': assignment.ticket.id,
+                'ticket_category': assignment.ticket.category.category,
+                'status': assignment.ticket.status.status,
+                # 'ticket_content': assignment.ticket.content, 
+                'assigned_on': assignment.assigned_on,
+                'message':assignment.message,
+                'responce':assignment.response,
+                'priority': assignment.ticket.priority,
+                # 'last_status_on': assignment.ticket.last_status_on,
+            })
+
+        return Response(assignments_data, status=status.HTTP_200_OK)
 
 # All responced tickets
 class ResponcedTicket(APIView):
@@ -363,7 +396,35 @@ class ResponcedTicket(APIView):
 
         return Response(assignments_data, status=status.HTTP_200_OK)
 
-
+class DetailTicket(APIView):
+    # permission_classes = [IsAuthenticated]
+    def get(self, request, ticket_id):
+        # Get the ticket and status
+        try:
+            ticket = Ticket.objects.get(id=ticket_id)
+            full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
+            ticket_data = {
+                'id': ticket.id,
+                'member_id': ticket.alumni.member.id,
+                'name': full_name,
+                'course': ticket.alumni.member.course.title,
+                'batch': ticket.alumni.member.batch.title,
+                'end_year': ticket.alumni.member.batch.end_year,
+                'alumni': ticket.alumni.member.email,
+                'contact': ticket.alumni.member.mobile_no,
+                'category': ticket.category.category, 
+                'status': ticket.status.status, 
+                'priority': ticket.priority,
+                'due_date': ticket.due_date,
+                'last_status_on': ticket.last_status_on,
+                'content': ticket.content,
+                
+            }
+        except Ticket.DoesNotExist:
+            return Response({"error": "Ticket not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        return Response(ticket_data, status=status.HTTP_200_OK)
+    
 # responce for specific ticket assignment 
 class TicketAssignmentResponse(APIView):
     def get(self, request, ticket_assignment_id):
@@ -388,30 +449,23 @@ class TicketStatusUpdate(APIView):
         # Get the ticket and status
         try:
             ticket = Ticket.objects.get(id=ticket_id)
-            full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
             ticket_data = {
-                'id': ticket.id,
-                'name': full_name,
-                'batch': ticket.alumni.member.batch.title,
-                'end_year': ticket.alumni.member.batch.end_year,
-                'alumni': ticket.alumni.member.email,
-                'contact': ticket.alumni.member.email,
-                'category': ticket.category.category, 
-                'status': ticket.status.status, 
+                'id': ticket.id, 
+                'status_id': ticket.status.id, 
                 'priority': ticket.priority,
                 'due_date': ticket.due_date,
-                'last_status_on': ticket.last_status_on,
-                'content': ticket.content,
+                
             }
         except Ticket.DoesNotExist:
             return Response({"error": "Ticket not found"}, status=status.HTTP_404_NOT_FOUND)
         
         return Response(ticket_data, status=status.HTTP_200_OK)
+    
     def post(self, request, ticket_id):
         # Get the ticket and update its status, priority, and due date
         try:
             ticket = Ticket.objects.get(id=ticket_id)
-            ticket_status_id = request.data.get('status')
+            ticket_status_id = request.data.get('status_id')
             ticket_priority = request.data.get('priority')
             ticket_due_date = request.data.get('due_date')
 
@@ -426,7 +480,7 @@ class TicketStatusUpdate(APIView):
                     status_changed = True
 
             # Update the priority if provided
-            if ticket_priority and ticket_priority in dict(Ticket.PRIORITY_CHOICES):
+            if ticket_priority:
                 ticket.priority = ticket_priority
 
             # Update the due date if provided

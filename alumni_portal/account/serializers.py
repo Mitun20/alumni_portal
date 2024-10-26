@@ -48,17 +48,17 @@ class LocationSerializer(serializers.ModelSerializer):
 #         model = Salutation
 #         fields = ['title']  # Adjust this to match your model fields
 
-class AlumniSerializer(serializers.ModelSerializer):
-    location = LocationSerializer()
-    class Meta:
-        model = Alumni
-        fields = '__all__'  # Adjust fields as needed
-
-
-# class Alumni_Serializer(serializers.ModelSerializer):
+# class AlumniSerializer(serializers.ModelSerializer):
+#     location = LocationSerializer()
 #     class Meta:
 #         model = Alumni
-#         fields = ['website', 'linked_in', 'twitter_handle', 'address', 'location', 'postal_code', 'registered_on']
+#         fields = '__all__'  # Adjust fields as needed
+
+
+class AlumniSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Alumni
+        fields = ['id', 'member', 'website', 'linked_in', 'twitter_handle', 'address', 'location', 'postal_code', 'registered_on']
 
 
 # class SkillSerializer(serializers.ModelSerializer):

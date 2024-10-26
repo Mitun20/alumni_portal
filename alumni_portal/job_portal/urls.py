@@ -24,6 +24,7 @@ urlpatterns = [
     path('detail_business_directory/<int:directory_id>/', DetailBusinessDirectory.as_view(), name='detail_business_directory'),
 
     # filter
+    path('main_filter_job/', JobPostMainFilterView.as_view(), name='main_filter_job'),
     path('filter_job/', JobPostFilterView.as_view(), name='filter_job'),
     path('filter_business_directory/', BusinessDirectoryFilterView.as_view(), name='filter_business_directory'),
 

@@ -154,7 +154,7 @@ class RetrieveTicket(APIView):
         for ticket in tickets:
             full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
             tickets_data.append({
-                'id': ticket.id,
+                'ticket_id': ticket.id,
                 'name': full_name,
                 'batch': ticket.alumni.member.batch.title,
                 'end_year': ticket.alumni.member.batch.end_year,
@@ -182,7 +182,7 @@ class RetrieveOpenTicket(APIView):
         for ticket in tickets:
             full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
             tickets_data.append({
-                'id': ticket.id,
+                'ticket_id': ticket.id,
                 'name': full_name,
                 'batch': ticket.alumni.member.batch.title,
                 'end_year': ticket.alumni.member.batch.end_year,
@@ -384,7 +384,7 @@ class ResponcedTicket(APIView):
             assignments_data.append({
                 'id': assignment.id,
                 'ticket_id': assignment.ticket.id,
-                'ticket_category': assignment.ticket.category.category,
+                'category': assignment.ticket.category.category,
                 'status': assignment.ticket.status.status,
                 # 'ticket_content': assignment.ticket.content, 
                 'assigned_on': assignment.assigned_on,
@@ -398,11 +398,27 @@ class ResponcedTicket(APIView):
 
 class DetailTicket(APIView):
     # permission_classes = [IsAuthenticated]
+    
     def get(self, request, ticket_id):
-        # Get the ticket and status
+        # Get the ticket and its assignments
         try:
             ticket = Ticket.objects.get(id=ticket_id)
             full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
+            
+            # Get related ticket assignments
+            assignments = TicketAssignment.objects.filter(ticket=ticket)
+            # full_faculty_name = f"{assignment.ticket.alumni.member.user.first_name} {assignment.ticket.alumni.member.user.last_name}"
+            assignment_data = [
+                {
+                    'assigned_to':assignment.assigned_to.username,
+                    'message': assignment.message,
+                    'response': assignment.response,
+                    'assigned_on': assignment.assigned_on,
+                    'respond_on': assignment.respond_on,
+                }
+                for assignment in assignments
+            ]
+
             ticket_data = {
                 'id': ticket.id,
                 'member_id': ticket.alumni.member.id,
@@ -414,6 +430,28 @@ class DetailTicket(APIView):
                 'contact': ticket.alumni.member.mobile_no,
                 'category': ticket.category.category, 
                 'status': ticket.status.status, 
+                'priority': ticket.priority,
+                'due_date': ticket.due_date,
+                'last_status_on': ticket.last_status_on,
+                'content': ticket.content,
+                'assignments': assignment_data,  # Include assignment data here
+            }
+        except Ticket.DoesNotExist:
+            return Response({"error": "Ticket not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(ticket_data, status=status.HTTP_200_OK)
+
+class DetailMyTicket(APIView):
+    # permission_classes = [IsAuthenticated]
+    def get(self, request, ticket_id):
+        # Get the ticket and status
+        try:
+            ticket = Ticket.objects.get(id=ticket_id)
+            full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
+            ticket_data = {
+                'id': ticket.id,
+                'category': ticket.category.category,
+                'status': ticket.status.status,
                 'priority': ticket.priority,
                 'due_date': ticket.due_date,
                 'last_status_on': ticket.last_status_on,
@@ -589,7 +627,7 @@ class TicketFilterView(APIView):
         for ticket in queryset:
             full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
             data.append({
-                'id': ticket.id,
+                'ticket_id': ticket.id,
                 'name': full_name,
                 'batch': ticket.alumni.member.batch.title,
                 'end_year': ticket.alumni.member.batch.end_year,

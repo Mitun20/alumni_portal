@@ -44,7 +44,7 @@ class RetrieveJobPost(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        job_posts = JobPost.objects.filter(is_active=True).order_by('-id')
+        job_posts = JobPost.objects.filter(is_active=True)
         
         # Manually create a list of job post data
         job_posts_data = []
@@ -415,7 +415,7 @@ class DetailBusinessDirectory(APIView):
 
 # filter job post
 
-class JobPostFilterView(APIView):
+class JobPostMainFilterView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
@@ -428,6 +428,61 @@ class JobPostFilterView(APIView):
 
         # Create a dictionary for the filter arguments
         filters = Q()
+        if job_title:
+            filters &= Q(job_title__icontains=job_title)
+        if industry_id:
+            filters &= Q(industry_id=industry_id)
+        if location:
+            filters &= Q(location__icontains=location)
+        if role_id:
+            filters &= Q(role_id=role_id)
+        if post_type:
+            filters &= Q(post_type__icontains=post_type)
+
+        # Apply the filters in a single query
+        queryset = JobPost.objects.filter(filters).annotate(application_count=Count('application'))
+
+        # Prepare the response data without serializers
+        data = []
+        for job in queryset:
+            data.append({
+                'id': job.id,
+                'posted_by': job.posted_by.username, 
+                'job_title': job.job_title,
+                'industry': job.industry.title, 
+                # 'experience_level_from': job.experience_level_from,
+                # 'experience_level_to': job.experience_level_to,
+                'location': job.location,
+                # 'contact_email': job.contact_email,
+                # 'contact_link': job.contact_link,
+                'role': job.role.role,  # Adjust based on your Role model
+                'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
+                'salary_package': job.salary_package,
+                'dead_line': job.dead_line,
+                'job_description': job.job_description,
+                'file': request.build_absolute_uri(job.file.url) if job.file else None,
+                'post_type': job.post_type,
+                'posted_on': job.posted_on,
+                'is_active': job.is_active,
+                'application_count': job.application_count,
+                
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
+    
+class JobPostFilterView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # Extract data from the JSON body
+        job_title = request.data.get('job_title', None)
+        industry_id = request.data.get('industry', None)  # Assuming you're passing the industry ID
+        location = request.data.get('location', None)
+        role_id = request.data.get('role', None)  # Assuming you're passing the role ID
+        post_type = request.data.get('post_type', None)
+
+        # Create a dictionary for the filter arguments
+        filters = Q(is_active=True)
         if job_title:
             filters &= Q(job_title__icontains=job_title)
         if industry_id:

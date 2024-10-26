@@ -31,31 +31,52 @@ class Login(APIView):
         user = authenticate(username=username, password=password)
 
         if user is not None:
-            member = Member.objects.filter(email=username).first()
-            profile_photo_check = bool(member.profile_picture)  # True if profile picture exists
-            
-            # Check Member Skills and Member Education
-            skills_check = not Member_Skills.objects.filter(member=member).exists() or all(
-                skill.skill is not None for skill in Member_Skills.objects.filter(member=member)
-            )
-            education_check = not Member_Education.objects.filter(member=member).exists() or all(
-                edu.institute is not None and edu.degree and edu.start_year for edu in Member_Education.objects.filter(member=member)
-            )
-            module2_check = skills_check and education_check  # Combine checks for module 2
-
-            # Check Member Experience
-            experience_check = not Member_Experience.objects.filter(member=member).exists() or all(
-                exp.industry is not None and exp.start_date for exp in Member_Experience.objects.filter(member=member)
-            )
-
-            # Check Alumni
-            alumni_check = not Alumni.objects.filter(member=member).exists() or all(
-                alum.website and alum.linked_in for alum in Alumni.objects.filter(member=member)
-            )
+            member = None
+            try:
+                member = Member.objects.get(email=username)
+            except Member.DoesNotExist:
+                member = None  # Keep it None if member does not exist
 
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
+
+            if member is not None:
+                profile_photo_check = bool(member.profile_picture)
+
+                # Check Member Skills and Education
+                skills_check = not Member_Skills.objects.filter(member=member).exists() or all(
+                    skill.skill is not None for skill in Member_Skills.objects.filter(member=member)
+                )
+                education_check = not Member_Education.objects.filter(member=member).exists() or all(
+                    edu.institute is not None and edu.degree and edu.start_year for edu in Member_Education.objects.filter(member=member)
+                )
+                module2_check = skills_check and education_check
+
+                # Check Member Experience
+                experience_check = not Member_Experience.objects.filter(member=member).exists() or all(
+                    exp.industry is not None and exp.start_date for exp in Member_Experience.objects.filter(member=member)
+                )
+
+                # Check Alumni
+                alumni_check = not Alumni.objects.filter(member=member).exists() or all(
+                    alum.website and alum.linked_in for alum in Alumni.objects.filter(member=member)
+                )
+
+                # Create the response including module checks
+                modules = {
+                    'module1': profile_photo_check,
+                    'module2': module2_check,
+                    'module3': experience_check,
+                    'module4': alumni_check,
+                }
+
+            else:
+                # Member does not exist, return tokens and user info without module checks
+                modules = {}
+
+            group_names = user.groups.values_list('name', flat=True)
+            group_dict = {group_name: True for group_name in group_names}
 
             return Response({
                 'refresh': refresh_token,
@@ -63,15 +84,48 @@ class Login(APIView):
                 'username': username,
                 'user_id': user.id,
                 'member_id': member.id if member else None,
-                'modules': {
-                    'module1': profile_photo_check,
-                    'module2': module2_check,  # Combined check for skills and education
-                    'module3': experience_check,
-                    'module4': alumni_check,
-                },
+                'modules': modules,
+                'groups': group_dict
             }, status=status.HTTP_200_OK)
 
         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+# class Login(APIView):
+#     def post(self, request):
+#         username = request.data.get('username')
+#         password = request.data.get('password')
+#         user = authenticate(username=username, password=password)
+#         member = None
+
+#         try:
+#             member = Member.objects.get(email=username)
+#         except Member.DoesNotExist:
+#             member = None  # Keep it None if member does not exist
+
+#         if user is not None:
+#             refresh = RefreshToken.for_user(user)
+#             access_token = str(refresh.access_token)
+#             refresh_token = str(refresh)
+#             group_names = user.groups.values_list('name', flat=True)
+
+#             # Create a dictionary with group names as keys and True as values
+#             group_dict = {group_name: True for group_name in group_names}
+
+#             return Response({
+#                 'refresh': refresh_token,
+#                 'access': access_token,
+#                 'username': username,
+#                 'user_id': user.id,
+#                 'member_id': member.id if member else None,
+#                 'groups': group_dict  # Updated to use the group dictionary
+#             }, status=status.HTTP_200_OK)
+
+#         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+
+
 
 class ForgetPassword(APIView):
     def post(self, request):
@@ -1469,7 +1523,7 @@ class DeleteMemberExperience(APIView):
 
 # contact details for alumni
 class CreateAlumni(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = AlumniSerializer(data=request.data)

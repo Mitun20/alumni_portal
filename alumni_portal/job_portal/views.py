@@ -338,7 +338,7 @@ class MyBusinessDirectory(APIView):
             return Response({"message": "Business directory not found"}, status=status.HTTP_404_NOT_FOUND)
         
 class UpdateBusinessDirectory(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request, directory_id):
         try:
@@ -387,7 +387,42 @@ class UpdateBusinessDirectory(APIView):
 
         business_directory.save()
         return Response({"message": "Business directory entry updated successfully"}, status=status.HTTP_200_OK)
+# class UpdateBusinessDirectory(APIView):
+#     # permission_classes = [IsAuthenticated]
 
+#     def get(self, request, directory_id):
+#         try:
+#             business = BusinessDirectory.objects.get(id=directory_id)
+#             serializer = BusinessDirectorySerializer(business)
+#             data = serializer.data
+
+#             # Convert logo to absolute URI
+#             if business.logo:
+#                 data['logo'] = request.build_absolute_uri(business.logo.url)
+
+#             return Response(data, status=status.HTTP_200_OK)
+        
+#         except BusinessDirectory.DoesNotExist:
+#             return Response({"message": "Business directory not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+#     def post(self, request, directory_id):
+#         try:
+#             business_directory = BusinessDirectory.objects.get(id=directory_id)
+#         except BusinessDirectory.DoesNotExist:
+#             return Response({"message": "Business directory not found"}, status=status.HTTP_404_NOT_FOUND)
+
+#         serializer = BusinessDirectorySerializer(business_directory, data=request.data, partial=True)
+        
+#         if serializer.is_valid():
+#             # Handle logo upload separately if included in request.FILES
+#             if request.FILES.get('logo'):
+#                 serializer.validated_data['logo'] = request.FILES['logo']
+            
+#             serializer.save()
+#             return Response({"message": "Business directory entry updated successfully"}, status=status.HTTP_200_OK)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 class DetailBusinessDirectory(APIView):
     permission_classes = [IsAuthenticated]
 

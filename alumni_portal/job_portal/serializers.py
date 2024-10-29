@@ -57,3 +57,37 @@ class JobPostUpdateSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+# class BusinessDirectorySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = BusinessDirectory
+#         fields = [
+#             'id',
+#             'business_name',
+#             'description',
+#             'website',
+#             'industry_type',
+#             'location',
+#             'contact_email',
+#             'contact_number',
+#             'country_code',
+#             'are_you_part_of_management',
+#             'logo',
+#         ]
+    
+#     def to_representation(self, instance):
+#         representation = super().to_representation(instance)
+        
+#         # Build absolute URL for the logo
+#         if instance.logo:
+#             representation['logo'] = instance.logo.url
+#         else:
+#             representation['logo'] = None
+        
+#         return representation
+#     def update(self, instance, validated_data):
+#         # Update the instance with validated data
+#         for attr, value in validated_data.items():
+#             setattr(instance, attr, value)
+#         instance.save()
+#         return instance

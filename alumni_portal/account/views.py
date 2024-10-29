@@ -172,7 +172,26 @@ class ChangePassword(APIView):
             'refresh': refresh_token,
             'access': access_token,
         })
+
+class CreateUser(APIView):
+    # permission_classes = [IsAuthenticated, IsAlumniManagerOrAdministrator]
+
+    def post(self, request):
+        username = request.data.get('email')
+        password = request.data.get('password')
         
+        if not username or not password:
+            return Response({"error": "Email and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if the user already exists
+        if User.objects.filter(username=username).exists():
+            return Response({"error": "User with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create the user
+        user = User.objects.create_user(username=username, password=password)
+
+        return Response({"success": "User created successfully.", "user_id": user.id}, status=status.HTTP_201_CREATED)
+
 # Assign Role
 class Users(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
@@ -1670,7 +1689,7 @@ class MemberListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        members = Member.objects.exclude(user__isnull=True)
+        members = Member.objects.all()
         response_data = []
         for member in members:
             alumni_data = None
@@ -1711,9 +1730,16 @@ class MemberFilterView(APIView):
         first_name = request.data.get('first_name', None)
         email = request.data.get('email', None)
         dob = request.data.get('dob', None)
+        registered = request.data.get('registered', None)  # New filter for registration status
 
         # Create a dictionary for the filter arguments using Q objects
-        filters = Q(user__isnull=False)  # Ensure user is not null
+        filters = Q()  # Start with an empty Q object
+
+        if registered is not None:
+            if registered:  # If registered is true, filter for members with a user
+                filters &= Q(user__isnull=False)
+            else:  # If registered is false, filter for members without a user
+                filters &= Q(user__isnull=True)
 
         if batch:
             filters &= Q(batch__id=batch)
@@ -1788,52 +1814,52 @@ class MemberDetailView(APIView):
         # Manually construct the response data
         member_data = {
             'name': full_name,
-            'email': member.email,
-            'gender': member.gender,
-            'dob': member.dob,
-            'blood_group': member.blood_group,
-            'mobile_no': member.mobile_no,
+            'email': member.email or None,
+            'gender': member.gender or None,
+            'dob': member.dob or None,
+            'blood_group': member.blood_group or None,
+            'mobile_no': member.mobile_no or None,
             'profile_picture': request.build_absolute_uri(member.profile_picture.url) if member.profile_picture else None,
-            'about_me': member.about_me,
-            'salutation': member.salutation.salutation,  # Assuming 'title' is the field in Salutation
-            'batch': member.batch.title if member.batch else None,  # Adjust field as necessary
-            'course': member.course.title if member.course else None,  # Adjust field as necessary
-            # 'location': member.location.location if member.location else None,  # Adjust field as necessary
-            'skills':[skill.skill.skill for skill in member.skills.all()],  # Adjust if related name changes
+            'about_me': member.about_me or None,
+            'salutation': member.salutation.salutation if member.salutation else None,
+            'batch': member.batch.title if member.batch else None,
+            'course': member.course.title if member.course else None,
+            'skills': [skill.skill.skill for skill in member.skills.all()] if member.skills.exists() else None,
             'education': [
                 {
-                    'institute': edu.institute.title,  # Adjust field as necessary
-                    'degree': edu.degree,
-                    'start_year': edu.start_year,
-                    'end_year': edu.end_year,
-                    'is_currently_pursuing': edu.is_currently_pursuing,
-                    'location': edu.location.location if edu.location else None  # Adjust field as necessary
+                    'institute': edu.institute.title if edu.institute else None,
+                    'degree': edu.degree or None,
+                    'start_year': edu.start_year or None,
+                    'end_year': edu.end_year or None,
+                    'is_currently_pursuing': edu.is_currently_pursuing or None,
+                    'location': edu.location.location if edu.location else None
                 }
                 for edu in member.education.all()
-            ],
+            ] or None,
             'experiences': [
                 {
-                    'industry': exp.industry.title,  # Adjust field as necessary
-                    'role': exp.role.role if exp.role else None,  # Adjust field as necessary
-                    'start_date': exp.start_date,
-                    'end_date': exp.end_date,
-                    'is_currently_working': exp.is_currently_working,
-                    'location': exp.location.location  # Adjust field as necessary
+                    'industry': exp.industry.title if exp.industry else None,
+                    'role': exp.role.role if exp.role else None,
+                    'start_date': exp.start_date or None,
+                    'end_date': exp.end_date or None,
+                    'is_currently_working': exp.is_currently_working or None,
+                    'location': exp.location.location if exp.location else None
                 }
                 for exp in member.experience.all()
-            ],
+            ] or None,
             'alumni': (
                 {
-                    'website': member.alumni.first().website,
-                    'linked_in': member.alumni.first().linked_in,
-                    'twitter_handle': member.alumni.first().twitter_handle,
-                    'address': member.alumni.first().address,
-                    'postal_code': member.alumni.first().postal_code,
-                    'registered_on': member.alumni.first().registered_on,
-                    'location':member.alumni.first().location.location
+                    'website': member.alumni.first().website if member.alumni.exists() else None,
+                    'linked_in': member.alumni.first().linked_in if member.alumni.exists() else None,
+                    'twitter_handle': member.alumni.first().twitter_handle if member.alumni.exists() else None,
+                    'address': member.alumni.first().address if member.alumni.exists() else None,
+                    'postal_code': member.alumni.first().postal_code if member.alumni.exists() else None,
+                    'registered_on': member.alumni.first().registered_on if member.alumni.exists() else None,
+                    'location': member.alumni.first().location.location if member.alumni.exists() and member.alumni.first().location else None
                 }
-                if member.alumni else None  # Check if alumni exists
+                if member.alumni.exists() else None
             )
         }
 
         return Response(member_data, status=status.HTTP_200_OK)
+

@@ -8,7 +8,8 @@ urlpatterns = [
     path('forget_password/', ForgetPassword.as_view(), name='forget_password'),
     path('change_password/', ChangePassword.as_view(), name='change_password'),
 
-    # get users, groups and assign 
+    # Manage users, groups and assign 
+    path('create_user/', CreateUser.as_view(), name='create_user'),
     path('users/', Users.as_view(), name='user_list'),
     path('groups/', Groups.as_view(), name='group_list'),
     path('assign_group/', Assign_Group.as_view(), name='assign_group'),

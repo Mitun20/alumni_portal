@@ -37,5 +37,8 @@ urlpatterns = [
 
     # Filter Ticket    
     path('filter_ticket/', TicketFilterView.as_view(), name='filter_ticket'),
+    path('open_filter_ticket/', TicketFilterOpenView.as_view(), name='open_filter_ticket'),
+    path('replied_filter_ticket/', TicketFilterRepliedView.as_view(), name='replied_filter_ticket'),
+    
 
 ]

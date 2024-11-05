@@ -285,7 +285,7 @@ class TicketAssignTo(APIView):
 
 # My Assignments
 class MyTicketAssignment(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         # Get the assigned ticket assignments for the authenticated user
@@ -295,11 +295,13 @@ class MyTicketAssignment(APIView):
         assignments_data = []
         
         for assignment in assigned_tickets:
+            full_name = f"{assignment.ticket.alumni.member.user.first_name} {assignment.ticket.alumni.member.user.last_name}"
             has_response = bool(assignment.response)
             assignments_data.append({
                 'id': assignment.id,
                 'ticket_id': assignment.ticket.id,
-                'ticket_category': assignment.ticket.category.category,
+                'name': full_name,
+                'category': assignment.ticket.category.category,
                 'status': assignment.ticket.status.status,
                 # 'ticket_content': assignment.ticket.content, 
                 'assigned_on': assignment.assigned_on,
@@ -331,14 +333,14 @@ class ResponceTicketAssignment(APIView):
             ticket_assignment.respond_on = datetime.now()
             ticket_assignment.save()
             # -------------------------------- if all assignments are responded
-            # total_assignments = TicketAssignment.objects.filter(ticket=ticket_assignment.ticket).count()
-            # responded_assignments = TicketAssignment.objects.filter(ticket=ticket_assignment.ticket, response__isnull=False).count()
+            total_assignments = TicketAssignment.objects.filter(ticket=ticket_assignment.ticket).count()
+            responded_assignments = TicketAssignment.objects.filter(ticket=ticket_assignment.ticket, response__isnull=False).count()
 
-            # if total_assignments == responded_assignments:
-            #     # Update the ticket status to "Replied"
-            #     replied_status = get_object_or_404(TicketStatus, status='Replied')
-            #     ticket_assignment.ticket.status = replied_status
-            #     ticket_assignment.ticket.save()
+            if total_assignments == responded_assignments:
+                # Update the ticket status to "Replied"
+                replied_status = get_object_or_404(TicketStatus, status='Replied')
+                ticket_assignment.ticket.status = replied_status
+                ticket_assignment.ticket.save()
                 
             return Response({"message": "Ticket Responce updated successfully"}, status=status.HTTP_200_OK)
         
@@ -371,28 +373,59 @@ class IrresponseTicket(APIView):
         return Response(assignments_data, status=status.HTTP_200_OK)
 
 # All responced tickets
+# class ResponcedTicket(APIView):
+#     # permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         # Get the assigned ticket assignments for the authenticated user
+#         assigned_tickets = TicketAssignment.objects.exclude(response__isnull=True).exclude(response__exact='')
+        
+#         # Create a list of assignments data
+#         assignments_data = []
+#         for assignment in assigned_tickets:
+#             assignments_data.append({
+#                 'id': assignment.id,
+#                 'ticket_id': assignment.ticket.id,
+#                 'category': assignment.ticket.category.category,
+#                 'status': assignment.ticket.status.status,
+#                 # 'ticket_content': assignment.ticket.content, 
+#                 'assigned_on': assignment.assigned_on,
+#                 'message':assignment.message,
+#                 'responce':assignment.response,
+#                 'priority': assignment.ticket.priority,
+#                 # 'last_status_on': assignment.ticket.last_status_on,
+#             })
+
+#         return Response(assignments_data, status=status.HTTP_200_OK)
 class ResponcedTicket(APIView):
     # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         # Get the assigned ticket assignments for the authenticated user
-        assigned_tickets = TicketAssignment.objects.exclude(response__isnull=True).exclude(response__exact='')
+        # assigned_tickets = TicketAssignment.objects.exclude(response__isnull=True).exclude(response__exact='')
+        assigned_tickets = TicketAssignment.objects.filter(ticket__status__status="Replied")
+
+        # Use a dictionary to hold unique tickets
+        unique_tickets = {}
         
-        # Create a list of assignments data
-        assignments_data = []
         for assignment in assigned_tickets:
-            assignments_data.append({
-                'id': assignment.id,
-                'ticket_id': assignment.ticket.id,
-                'category': assignment.ticket.category.category,
-                'status': assignment.ticket.status.status,
-                # 'ticket_content': assignment.ticket.content, 
-                'assigned_on': assignment.assigned_on,
-                'message':assignment.message,
-                'responce':assignment.response,
-                'priority': assignment.ticket.priority,
-                # 'last_status_on': assignment.ticket.last_status_on,
-            })
+            ticket_id = assignment.ticket.id
+            
+            # Only add the ticket if it's not already in the dictionary
+            if ticket_id not in unique_tickets:
+                unique_tickets[ticket_id] = {
+                    'id': assignment.id,
+                    'ticket_id': ticket_id,
+                    'category': assignment.ticket.category.category,
+                    'status': assignment.ticket.status.status,
+                    'assigned_on': assignment.assigned_on,
+                    'message': assignment.message,
+                    'response': assignment.response,
+                    'priority': assignment.ticket.priority,
+                }
+
+        # Convert the dictionary values to a list
+        assignments_data = list(unique_tickets.values())
 
         return Response(assignments_data, status=status.HTTP_200_OK)
 
@@ -612,6 +645,92 @@ class TicketFilterView(APIView):
         filters = Q()
         if status_id:
             filters &= Q(status_id=status_id)
+        if category_id:
+            filters &= Q(category_id=category_id)
+        if priority:
+            filters &= Q(priority=priority)
+        if due_date:
+            filters &= Q(due_date=due_date)
+
+        # Apply the filters in a single query
+        queryset = Ticket.objects.filter(filters)
+
+        # Prepare the response data
+        data = []
+        for ticket in queryset:
+            full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
+            data.append({
+                'ticket_id': ticket.id,
+                'name': full_name,
+                'batch': ticket.alumni.member.batch.title,
+                'end_year': ticket.alumni.member.batch.end_year,
+                'alumni': ticket.alumni.member.email,
+                'contact': ticket.alumni.member.mobile_no,
+                'category': ticket.category.category, 
+                'status': ticket.status.status, 
+                'priority': ticket.priority,
+                'due_date': ticket.due_date,
+                'last_status_on': ticket.last_status_on,
+                'content': ticket.content,
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
+    
+class TicketFilterOpenView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # Extract data from the JSON body
+        status_id = request.data.get('status', None)  # Assuming you're passing the status ID
+        category_id = request.data.get('category', None)  # Assuming you're passing the category ID
+        priority = request.data.get('priority', None)
+        due_date = request.data.get('due_date', None)  # Format as needed
+
+        # Create a dictionary for the filter arguments
+        filters = Q(status__status="Open")
+        if category_id:
+            filters &= Q(category_id=category_id)
+        if priority:
+            filters &= Q(priority=priority)
+        if due_date:
+            filters &= Q(due_date=due_date)
+
+        # Apply the filters in a single query
+        queryset = Ticket.objects.filter(filters)
+
+        # Prepare the response data
+        data = []
+        for ticket in queryset:
+            full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
+            data.append({
+                'ticket_id': ticket.id,
+                'name': full_name,
+                'batch': ticket.alumni.member.batch.title,
+                'end_year': ticket.alumni.member.batch.end_year,
+                'alumni': ticket.alumni.member.email,
+                'contact': ticket.alumni.member.mobile_no,
+                'category': ticket.category.category, 
+                'status': ticket.status.status, 
+                'priority': ticket.priority,
+                'due_date': ticket.due_date,
+                'last_status_on': ticket.last_status_on,
+                'content': ticket.content,
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
+    
+class TicketFilterRepliedView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # Extract data from the JSON body
+        status_id = request.data.get('status', None)  # Assuming you're passing the status ID
+        category_id = request.data.get('category', None)  # Assuming you're passing the category ID
+        priority = request.data.get('priority', None)
+        due_date = request.data.get('due_date', None)  # Format as needed
+
+        # Create a dictionary for the filter arguments
+        filters = Q(status__status="Replied")
         if category_id:
             filters &= Q(category_id=category_id)
         if priority:

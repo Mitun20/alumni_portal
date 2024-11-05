@@ -44,31 +44,34 @@ class Login(APIView):
             if member is not None:
                 profile_photo_check = bool(member.profile_picture)
 
-                # Check Member Skills and Education
-                skills_check = not Member_Skills.objects.filter(member=member).exists() or all(
-                    skill.skill is not None for skill in Member_Skills.objects.filter(member=member)
+                # Module 2: Check if Skills and Education are populated
+                skills_check = Member_Skills.objects.filter(member=member).exists() and all(
+                    skill.member is not None for skill in Member_Skills.objects.filter(member=member)
                 )
-                education_check = not Member_Education.objects.filter(member=member).exists() or all(
-                    edu.institute is not None and edu.degree and edu.start_year for edu in Member_Education.objects.filter(member=member)
+
+                education_check = Member_Education.objects.filter(member=member).exists() and all(
+                    edu.member for edu in Member_Education.objects.filter(member=member)
                 )
+
+                # If both Skills and Education are valid, set module2_check to True
                 module2_check = skills_check and education_check
 
-                # Check Member Experience
-                experience_check = not Member_Experience.objects.filter(member=member).exists() or all(
-                    exp.industry is not None and exp.start_date for exp in Member_Experience.objects.filter(member=member)
+                # Module 3: Check if Experience is valid (not null)
+                experience_check = Member_Experience.objects.filter(member=member).exists() and all(
+                    exp.member is not None  for exp in Member_Experience.objects.filter(member=member)
                 )
 
-                # Check Alumni
-                alumni_check = not Alumni.objects.filter(member=member).exists() or all(
-                    alum.website and alum.linked_in for alum in Alumni.objects.filter(member=member)
+                # Module 4: Check if Alumni is valid (not null)
+                alumni_check = Alumni.objects.filter(member=member).exists() and all(
+                    alum.member for alum in Alumni.objects.filter(member=member)
                 )
 
-                # Create the response including module checks
+                # Creating a dictionary for module checks
                 modules = {
-                    'module1': profile_photo_check,
-                    'module2': module2_check,
-                    'module3': experience_check,
-                    'module4': alumni_check,
+                    'module1': profile_photo_check,  # True if profile photo exists
+                    'module2': module2_check,        # True if skills and education are valid
+                    'module3': experience_check,     # True if experience is valid
+                    'module4': alumni_check,         # True if alumni information is valid
                 }
 
             else:
@@ -869,10 +872,11 @@ class RegisterUsers(APIView):
             return Response({'error': 'Email not found in our records'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check user group
-        if member.user.groups.filter(name='Faculty').exists():
-            return Response({'error': 'Faculties have only the option to login'}, status=status.HTTP_403_FORBIDDEN)
-        elif member.user.groups.filter(name='Alumni').exists():
-            return Response({'error': 'You have already registered'}, status=status.HTTP_400_BAD_REQUEST)
+        if member.user is not None:
+            if member.user.groups.filter(name='Faculty').exists():
+                return Response({'error': 'Faculties have only the option to login'}, status=status.HTTP_403_FORBIDDEN)
+            elif member.user.groups.filter(name='Alumni').exists():
+                return Response({'error': 'You have already registered'}, status=status.HTTP_400_BAD_REQUEST)
 
         
         # Generate OTP
